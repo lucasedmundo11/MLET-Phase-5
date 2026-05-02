@@ -16,8 +16,8 @@ import os
 
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
 from langchain.tools import Tool
+from langchain_community.chat_models import ChatOpenAI
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,11 @@ from src.agent.tools import (
 
 
 @pytest.fixture(autouse=True)
-def _stub_data(tmp_path: Path, sample_features: pd.DataFrame, monkeypatch: pytest.MonkeyPatch) -> None:
+def _stub_data(
+    tmp_path: Path,
+    sample_features: pd.DataFrame,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Aponta as tools para parquets sintéticos isolados por teste."""
     prices_path = tmp_path / "prices.parquet"
     fund_path = tmp_path / "fundamentals.parquet"
@@ -26,8 +30,20 @@ def _stub_data(tmp_path: Path, sample_features: pd.DataFrame, monkeypatch: pytes
     sample_features.to_parquet(prices_path, index=False)
     fundamentals = pd.DataFrame(
         [
-            {"ticker": "TEST1.SA", "pe_ratio": 8.5, "roe": 0.18, "dividend_yield": 0.06, "sector": "Energy"},
-            {"ticker": "TEST2.SA", "pe_ratio": 12.0, "roe": 0.22, "dividend_yield": 0.04, "sector": "Materials"},
+            {
+                "ticker": "TEST1.SA",
+                "pe_ratio": 8.5,
+                "roe": 0.18,
+                "dividend_yield": 0.06,
+                "sector": "Energy",
+            },
+            {
+                "ticker": "TEST2.SA",
+                "pe_ratio": 12.0,
+                "roe": 0.22,
+                "dividend_yield": 0.04,
+                "sector": "Materials",
+            },
         ]
     )
     fundamentals.to_parquet(fund_path, index=False)
@@ -94,9 +110,21 @@ def test_in_memory_retriever_returns_top_k() -> None:
     from src.agent.rag_pipeline import InMemoryRetriever
 
     chunks = [
-        Chunk(text="A Petrobras reportou aumento de produção no pré-sal.", source="petr.pdf", chunk_id=0),
-        Chunk(text="A Vale apresentou receita recorde em minério de ferro.", source="vale.pdf", chunk_id=0),
-        Chunk(text="Itaú destacou crescimento da carteira de crédito.", source="itub.pdf", chunk_id=0),
+        Chunk(
+            text="A Petrobras reportou aumento de produção no pré-sal.",
+            source="petr.pdf",
+            chunk_id=0,
+        ),
+        Chunk(
+            text="A Vale apresentou receita recorde em minério de ferro.",
+            source="vale.pdf",
+            chunk_id=0,
+        ),
+        Chunk(
+            text="Itaú destacou crescimento da carteira de crédito.",
+            source="itub.pdf",
+            chunk_id=0,
+        ),
     ]
     retriever = InMemoryRetriever(chunks)
     results = retriever.search("produção de petróleo no pré-sal", top_k=2)

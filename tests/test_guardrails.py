@@ -77,7 +77,10 @@ def _presidio_available() -> bool:
 
 pytestmark_presidio = pytest.mark.skipif(
     not _presidio_available(),
-    reason="Presidio/spaCy PT indisponível — instale `.[security]` e `python -m spacy download pt_core_news_sm`.",
+    reason=(
+        "Presidio/spaCy PT indisponível — instale `.[security]` "
+        "e `python -m spacy download pt_core_news_sm`."
+    ),
 )
 
 
@@ -118,7 +121,9 @@ class TestOutputGuardrailRT04:
         self.guard = OutputGuardrail(language="pt")
 
     def test_rt04_redige_cpf_na_resposta(self) -> None:
-        sanitized = self.guard.sanitize("O cliente João Silva (CPF 123.456.789-09) recomendou PETR4.")
+        sanitized = self.guard.sanitize(
+            "O cliente João Silva (CPF 123.456.789-09) recomendou PETR4."
+        )
         assert "123.456.789-09" not in sanitized
         # PERSON também é anonimizado pelo Presidio quando o modelo PT está
         # disponível, mas não exigimos aqui — o crítico é o CPF não vazar.

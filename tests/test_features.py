@@ -7,8 +7,8 @@ preservação dos contratos de tipo / faixa.
 
 from __future__ import annotations
 
-import pandera as pa
 import pandas as pd
+import pandera as pa
 from pandera import Column, DataFrameSchema
 
 from src.features.feature_engineering import compute_features

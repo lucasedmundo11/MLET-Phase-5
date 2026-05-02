@@ -5,11 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from src.models.baseline import (
-    FEATURE_COLUMNS,
-    LogisticRegressionBaseline,
-    MLPClassifierTorch,
-)
+from src.models.baseline import FEATURE_COLUMNS, LogisticRegressionBaseline, MLPClassifierTorch
 
 
 def _xy(features: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:

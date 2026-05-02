@@ -131,7 +131,8 @@ def compare_fundamentals(query: str) -> str:
     sub = fund[fund["ticker"].isin(tickers)].set_index("ticker")
     missing = [t for t in tickers if t not in sub.index]
     if missing:
-        return f"Tickers ausentes nos fundamentos: {missing}. Disponíveis: {fund['ticker'].tolist()}"
+        avail = fund["ticker"].tolist()
+        return f"Tickers ausentes nos fundamentos: {missing}. Disponíveis: {avail}"
 
     available = [c for c in cols if c in sub.columns]
     return sub[available].to_string()
@@ -201,7 +202,12 @@ def technical_signal(query: str) -> str:
 
     rsi_state = "sobrevendido" if rsi < 30 else "sobrecomprado" if rsi > 70 else "neutro"
     macd_state = "alta" if macd_diff > 0 else "baixa"
-    bb_state = "abaixo da banda inferior" if pctb < 0 else "acima da banda superior" if pctb > 1 else "dentro das bandas"
+    if pctb < 0:
+        bb_state = "abaixo da banda inferior"
+    elif pctb > 1:
+        bb_state = "acima da banda superior"
+    else:
+        bb_state = "dentro das bandas"
 
     return (
         f"{ticker} em {last['date'].date()}: RSI={rsi:.1f} ({rsi_state}); "
@@ -209,7 +215,10 @@ def technical_signal(query: str) -> str:
     )
 
 
-def make_rag_search_tool(retriever: Callable[[str, int], list[str]], top_k: int = 4) -> Callable[[str], str]:
+def make_rag_search_tool(
+    retriever: Callable[[str, int], list[str]],
+    top_k: int = 4,
+) -> Callable[[str], str]:
     """Cria a tool ``search_reports`` ligada ao retriever do RAG."""
 
     def search_reports(query: str) -> str:

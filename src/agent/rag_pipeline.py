@@ -46,7 +46,11 @@ def _read_pdf(path: Path) -> str:
     return "\n".join(pages)
 
 
-def chunk_text(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
+def chunk_text(
+    text: str,
+    size: int = DEFAULT_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> list[str]:
     """Janela deslizante por caracteres com overlap."""
     text = " ".join(text.split())
     if not text:
@@ -57,7 +61,11 @@ def chunk_text(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT
     return [text[i : i + size] for i in range(0, len(text), step) if text[i : i + size].strip()]
 
 
-def load_corpus(reports_dir: Path = REPORTS_DIR, size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[Chunk]:
+def load_corpus(
+    reports_dir: Path = REPORTS_DIR,
+    size: int = DEFAULT_CHUNK_SIZE,
+    overlap: int = DEFAULT_CHUNK_OVERLAP,
+) -> list[Chunk]:
     """Lê todos os PDFs do diretório e devolve a lista de chunks."""
     if not reports_dir.exists():
         logger.warning("Diretório de relatórios ausente: %s", reports_dir)
@@ -68,7 +76,8 @@ def load_corpus(reports_dir: Path = REPORTS_DIR, size: int = DEFAULT_CHUNK_SIZE,
         text = _read_pdf(pdf_path)
         for i, piece in enumerate(chunk_text(text, size=size, overlap=overlap)):
             chunks.append(Chunk(text=piece, source=pdf_path.name, chunk_id=i))
-    logger.info("Corpus carregado: %d chunks de %d arquivos", len(chunks), len(set(c.source for c in chunks)))
+    n_sources = len({c.source for c in chunks})
+    logger.info("Corpus carregado: %d chunks de %d arquivos", len(chunks), n_sources)
     return chunks
 
 
@@ -160,7 +169,10 @@ class InMemoryRetriever:
         q = self.model.encode([query], normalize_embeddings=True).astype("float32")
         scores = (self.embeddings @ q.T).ravel()
         top = np.argsort(-scores)[:top_k]
-        return [f"({self.chunks[i].source} #{self.chunks[i].chunk_id}) {self.chunks[i].text}" for i in top]
+        return [
+            f"({self.chunks[i].source} #{self.chunks[i].chunk_id}) {self.chunks[i].text}"
+            for i in top
+        ]
 
 
 def get_retriever(top_k: int = 4):
