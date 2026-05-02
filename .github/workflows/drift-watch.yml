@@ -1,0 +1,70 @@
+name: Drift watch (event-driven trigger)
+
+# GAP 07 — perna *event-driven*: cron diário roda drift; se status=critical,
+# dispara repository_dispatch que aciona o workflow `retraining.yml`.
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Diário 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      status: ${{ steps.check.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,monitor]"
+
+      - name: Refresh feature pipeline
+        run: python -m src.features.feature_engineering
+
+      - name: Run drift check
+        id: check
+        run: |
+          python -m scripts.run_drift_check --window-days 30 --no-html
+          status=$(python -c "import json; print(json.load(open('metrics/drift.json'))['status'])")
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "Drift status: $status"
+
+      - name: Upload drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: |
+            metrics/drift.json
+            data/processed/drift_reports/
+
+      - name: Fail if critical (visibilidade no badge)
+        if: steps.check.outputs.status == 'critical'
+        run: |
+          echo "::error title=Drift critical::PSI máximo ≥ 0.20 — disparando retraining."
+          exit 1
+
+  trigger-retraining:
+    needs: drift
+    if: needs.drift.outputs.status == 'critical'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # necessário para repository_dispatch
+    steps:
+      - name: Dispatch event-driven retraining
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/dispatches" \
+            -f event_type=drift-detected \
+            -f "client_payload[reason]=drift_critical" \
+            -f "client_payload[triggered_by]=drift-watch.yml"

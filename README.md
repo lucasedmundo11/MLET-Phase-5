@@ -35,6 +35,13 @@ o universo PETR4, VALE3, ITUB4, BBDC4, WEGE3 (B3). Esta release cobre as
 - ✅ Explicabilidade (ReAct trace + LogReg coefs) e fairness (paridade por ticker) — [docs/EXPLAINABILITY_FAIRNESS.md](docs/EXPLAINABILITY_FAIRNESS.md)
 - ✅ System Card + Model Card completos — [docs/SYSTEM_CARD.md](docs/SYSTEM_CARD.md), [docs/MODEL_CARD.md](docs/MODEL_CARD.md)
 
+### Maturity Level 2 — fechamento (auditoria)
+- ✅ **GAP 05** — schema completo de `required_tags` (9 campos) + Model Registry — [src/models/train.py::register_model_to_registry](src/models/train.py)
+- ✅ **GAP 01** — alertas Prometheus por degradação (latência, drift, RAGAS, security) — [configs/prometheus_alerts.yml](configs/prometheus_alerts.yml)
+- ✅ **GAP 07** — retraining champion-challenger (Δauc ≥ 0,005) com triggers cron + drift-event + manual e human-in-the-loop via Registry stages — [scripts/run_retraining.py](scripts/run_retraining.py), [.github/workflows/retraining.yml](.github/workflows/retraining.yml), [.github/workflows/drift-watch.yml](.github/workflows/drift-watch.yml), [docs/RETRAINING.md](docs/RETRAINING.md)
+- ✅ **Demo Day** — pitch ≤ 10 min com timing por bloco — [docs/PITCH.md](docs/PITCH.md)
+- ✅ **GAP 04** — `[tool.coverage]` configurado em [pyproject.toml](pyproject.toml) com exclusões padrão (`if __name__ == '__main__':`, `except ImportError`)
+
 ## Pré-requisitos
 
 Python 3.11+, [uv](https://github.com/astral-sh/uv), Docker.

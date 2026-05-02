@@ -1,0 +1,79 @@
+groups:
+  - name: datathon-agent-operational
+    interval: 30s
+    rules:
+      - alert: AgentHighLatencyP95
+        expr: histogram_quantile(0.95, sum by (endpoint, le) (rate(agent_http_request_latency_seconds_bucket[5m]))) > 10
+        for: 5m
+        labels:
+          severity: warning
+          phase: monitoring
+        annotations:
+          summary: "Latência p95 alta em {{ $labels.endpoint }}"
+          description: "p95 acima de 10s por mais de 5 min em {{ $labels.endpoint }} (valor atual {{ $value | humanize }}s)."
+
+      - alert: AgentHighErrorRate
+        expr: sum(rate(agent_http_requests_total{status=~"5.."}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          phase: monitoring
+        annotations:
+          summary: "Taxa de erro 5xx elevada"
+          description: "Mais de 0.1 req/s com 5xx em janela de 5 min ({{ $value | humanize }})."
+
+      - alert: AgentQuestionFailureSpike
+        expr: sum by (reason) (rate(agent_question_failures_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          phase: monitoring
+        annotations:
+          summary: "Falhas no agente — motivo: {{ $labels.reason }}"
+          description: "Mais de 0.5 falhas/s atribuídas a '{{ $labels.reason }}' nos últimos 5 min."
+
+  - name: datathon-agent-quality
+    interval: 60s
+    rules:
+      - alert: DriftCritical
+        expr: drift_psi_max >= 0.20
+        for: 10m
+        labels:
+          severity: critical
+          phase: drift
+        annotations:
+          summary: "Drift crítico — PSI ≥ 0.20"
+          description: "Trigger de retraining (GAP 06 do guia). Valor atual {{ $value | humanize }}."
+
+      - alert: DriftWarning
+        expr: drift_psi_max >= 0.10 and drift_psi_max < 0.20
+        for: 30m
+        labels:
+          severity: warning
+          phase: drift
+        annotations:
+          summary: "Drift em zona de atenção — PSI ≥ 0.10"
+          description: "Revisar features e considerar retraining preventivo. Valor atual {{ $value | humanize }}."
+
+      - alert: RagasFaithfulnessLow
+        expr: ragas_metric{metric="faithfulness"} < 0.7
+        for: 1h
+        labels:
+          severity: warning
+          phase: quality
+        annotations:
+          summary: "RAGAS faithfulness abaixo do limiar"
+          description: "Faithfulness < 0.7 (configs/monitoring_config.yaml). Investigar prompt/RAG."
+
+  - name: datathon-agent-security
+    interval: 30s
+    rules:
+      - alert: GuardrailBlockSpike
+        expr: rate(agent_question_failures_total{reason="input_guardrail"}[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          phase: security
+        annotations:
+          summary: "Picos de bloqueios pelo InputGuardrail"
+          description: "Possível ataque coordenado de prompt injection ({{ $value | humanize }} bloqueios/s)."

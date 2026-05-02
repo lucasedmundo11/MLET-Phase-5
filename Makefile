@@ -43,6 +43,10 @@ drift:
 red-team:
 	python -m scripts.run_red_team --url http://localhost:8000/agent/chat
 
+# ---------- Retraining automatizado (GAP 07) ----------
+retrain:
+	python -m scripts.run_retraining --reason manual
+
 # ---------- qualidade ----------
 test:
 	pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=60

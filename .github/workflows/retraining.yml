@@ -1,0 +1,74 @@
+name: Retraining (champion-challenger)
+
+# GAP 07 — três triggers conforme guia (p. 7-8):
+#   1. cron weekly (baseline scheduled)
+#   2. workflow_dispatch (manual com motivo auditável)
+#   3. repository_dispatch type=drift-detected (event-driven via drift-watch)
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Segunda 06:00 UTC (03:00 BRT)
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Motivo do retraining (audit trail)"
+        required: false
+        default: "manual"
+      challenger_class:
+        description: "Família do challenger (logreg | mlp)"
+        required: false
+        default: "logreg"
+  repository_dispatch:
+    types: [drift-detected]
+
+jobs:
+  champion-challenger:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Refresh feature pipeline (yfinance → parquet)
+        run: python -m src.features.feature_engineering
+
+      - name: Run champion-challenger
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI || 'file:./mlruns' }}
+          RETRAINING_REASON: >-
+            ${{
+              github.event_name == 'repository_dispatch' && 'drift_critical'
+              || github.event_name == 'workflow_dispatch' && inputs.reason
+              || 'scheduled'
+            }}
+        run: |
+          python -m scripts.run_retraining \
+            --challenger-class "${{ github.event.inputs.challenger_class || 'logreg' }}"
+
+      - name: Upload retraining report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retraining-report
+          path: |
+            metrics/retraining_*.json
+            mlruns/
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Retraining report" >> $GITHUB_STEP_SUMMARY
+          for f in metrics/retraining_*.json; do
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat "$f" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          done
