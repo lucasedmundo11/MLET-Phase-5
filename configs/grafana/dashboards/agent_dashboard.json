@@ -1,0 +1,118 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {"unit": "reqps"}},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Throughput por endpoint (req/s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (endpoint) (rate(agent_http_requests_total[1m]))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "title": "Latência p95 por endpoint",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (endpoint, le) (rate(agent_http_request_latency_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{endpoint}}"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 7},
+      "id": 3,
+      "title": "Erros HTTP (status >= 500)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (endpoint) (rate(agent_http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 7},
+      "id": 4,
+      "title": "Tool calls por ferramenta (taxa)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (tool) (rate(agent_tool_calls_total[5m]))",
+          "legendFormat": "{{tool}}"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 14},
+      "id": 5,
+      "title": "Tokens consumidos pelo LLM (5m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (kind) (rate(llm_tokens_total[5m]))",
+          "legendFormat": "{{kind}}"
+        }
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 14},
+      "id": 6,
+      "title": "Drift — share de colunas + maior PSI",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "drift_share_of_drifted_columns", "legendFormat": "share"},
+        {"expr": "drift_psi_max", "legendFormat": "psi_max"}
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 21},
+      "id": 7,
+      "title": "RAGAS por métrica",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "ragas_metric", "legendFormat": "{{metric}}"}
+      ]
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 21},
+      "id": 8,
+      "title": "LLM-as-judge — média por critério",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "judge_metric", "legendFormat": "{{criterion}}"}
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["datathon", "fase5"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "Datathon Fase 5 — Agente Financeiro",
+  "uid": "datathon-fase5",
+  "version": 1,
+  "weekStart": ""
+}

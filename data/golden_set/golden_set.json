@@ -1,0 +1,202 @@
+[
+  {
+    "id": "ar-001",
+    "category": "annual_returns",
+    "tool_expected": "annual_returns",
+    "query": "Qual ação teve maior retorno em 2024?",
+    "expected_answer": "A ação de maior retorno em 2024 deve ser indicada com o ticker e o percentual de retorno, calculado a partir do preço de fechamento do último pregão de 2023 vs. último pregão de 2024.",
+    "contexts": ["Retorno anual = preço_fim / preço_início - 1, calculado em data/processed/prices_features.parquet por ticker."]
+  },
+  {
+    "id": "ar-002",
+    "category": "annual_returns",
+    "tool_expected": "annual_returns",
+    "query": "Qual ação teve maior retorno em 2023?",
+    "expected_answer": "Resposta deve indicar o ticker vencedor de 2023 com seu percentual de retorno anualizado.",
+    "contexts": ["Universo: PETR4, VALE3, ITUB4, BBDC4, WEGE3."]
+  },
+  {
+    "id": "ar-003",
+    "category": "annual_returns",
+    "tool_expected": "annual_returns",
+    "query": "Qual ação teve menor retorno em 2022?",
+    "expected_answer": "O ticker com pior performance de 2022 deve ser indicado com o percentual (negativo) de retorno.",
+    "contexts": ["Em 2022, o mercado brasileiro teve dispersão alta entre setores."]
+  },
+  {
+    "id": "ar-004",
+    "category": "annual_returns",
+    "tool_expected": "annual_returns",
+    "query": "Qual foi o retorno de PETR4 em 2024?",
+    "expected_answer": "Percentual de retorno de PETR4 no ano-calendário 2024.",
+    "contexts": ["PETR4 sofre influência forte do preço do petróleo Brent e da política de dividendos da Petrobras."]
+  },
+  {
+    "id": "ar-005",
+    "category": "annual_returns",
+    "tool_expected": "annual_returns",
+    "query": "Liste o ranking de retornos de 2023 da maior para a menor.",
+    "expected_answer": "Lista ordenada decrescente: ticker e retorno anual.",
+    "contexts": ["Ranking deve cobrir todos os 5 tickers do universo."]
+  },
+  {
+    "id": "fd-001",
+    "category": "fundamentals",
+    "tool_expected": "compare_fundamentals",
+    "query": "Compare PETR4 e VALE3 pelo P/L.",
+    "expected_answer": "Tabela comparando PETR4 e VALE3 com a coluna pe_ratio (trailing P/E).",
+    "contexts": ["Fundamentos snapshot vêm de data/processed/fundamentals.parquet."]
+  },
+  {
+    "id": "fd-002",
+    "category": "fundamentals",
+    "tool_expected": "compare_fundamentals",
+    "query": "Compare ITUB4 e BBDC4 pelo ROE.",
+    "expected_answer": "Tabela com ROE (return on equity) dos dois bancos.",
+    "contexts": ["Bancos brasileiros têm ROE historicamente acima da média do Ibovespa."]
+  },
+  {
+    "id": "fd-003",
+    "category": "fundamentals",
+    "tool_expected": "compare_fundamentals",
+    "query": "Qual ticker tem maior dividend yield: PETR4 ou WEGE3?",
+    "expected_answer": "Comparação de dividend_yield; espera-se PETR4 > WEGE3 (commodities × growth).",
+    "contexts": ["Petrobras costuma pagar dividendos extraordinários em ciclos de petróleo alto."]
+  },
+  {
+    "id": "fd-004",
+    "category": "fundamentals",
+    "tool_expected": "compare_fundamentals",
+    "query": "Compare os fundamentos de PETR4, VALE3 e ITUB4.",
+    "expected_answer": "Tabela com pe_ratio, roe, dividend_yield, sector dos três tickers.",
+    "contexts": ["Sectors esperados: Energy (PETR4), Basic Materials (VALE3), Financial Services (ITUB4)."]
+  },
+  {
+    "id": "fd-005",
+    "category": "fundamentals",
+    "tool_expected": "compare_fundamentals",
+    "query": "Qual o setor de WEGE3?",
+    "expected_answer": "WEGE3 pertence ao setor Industrial (industrial goods / electric machinery).",
+    "contexts": ["WEG é fabricante de motores elétricos e equipamentos industriais."]
+  },
+  {
+    "id": "pr-001",
+    "category": "portfolio_risk",
+    "tool_expected": "portfolio_risk",
+    "query": "Gere um relatório de risco da carteira PETR4, VALE3, WEGE3 com pesos iguais.",
+    "expected_answer": "Volatilidade anualizada, VaR 95%, drawdown e matriz de correlação dos 3 tickers com pesos 1/3 cada.",
+    "contexts": ["Pesos iguais = 0.333 cada; risco esperado moderado a alto."]
+  },
+  {
+    "id": "pr-002",
+    "category": "portfolio_risk",
+    "tool_expected": "portfolio_risk",
+    "query": "Qual o risco de uma carteira 70% ITUB4 e 30% BBDC4?",
+    "expected_answer": "Volatilidade, VaR e correlação altíssima (>0.7) entre os dois bancos — pouca diversificação.",
+    "contexts": ["ITUB4 e BBDC4 são fortemente correlacionados (mesmo setor financeiro)."]
+  },
+  {
+    "id": "pr-003",
+    "category": "portfolio_risk",
+    "tool_expected": "portfolio_risk",
+    "query": "Compare o risco de PETR4+VALE3 vs. ITUB4+BBDC4 com pesos iguais.",
+    "expected_answer": "PETR4+VALE3 deve ter volatilidade maior (commodities); ITUB4+BBDC4 menor mas com correlação interna alta.",
+    "contexts": ["Diversificação setorial reduz a volatilidade global da carteira."]
+  },
+  {
+    "id": "pr-004",
+    "category": "portfolio_risk",
+    "tool_expected": "portfolio_risk",
+    "query": "Qual a volatilidade anualizada de uma carteira igualmente distribuída entre os 5 tickers?",
+    "expected_answer": "Volatilidade anualizada agregada com pesos 0.2 em cada ticker; diversificação reduz vs. carteiras concentradas.",
+    "contexts": ["Carteira igual-ponderada de 5 ações tende a ter vol anualizada entre 18% e 30%."]
+  },
+  {
+    "id": "ts-001",
+    "category": "technical_signal",
+    "tool_expected": "technical_signal",
+    "query": "Qual o sinal técnico atual de PETR4?",
+    "expected_answer": "Última leitura de RSI(14), MACD diff e %B (Bollinger) com classificação (sobrevendido/sobrecomprado/neutro).",
+    "contexts": ["RSI < 30 = sobrevendido; > 70 = sobrecomprado. MACD diff > 0 = momentum de alta."]
+  },
+  {
+    "id": "ts-002",
+    "category": "technical_signal",
+    "tool_expected": "technical_signal",
+    "query": "WEGE3 está sobrecomprada hoje?",
+    "expected_answer": "Resposta deve consultar RSI(14) e classificar; sobrecomprada se RSI > 70.",
+    "contexts": ["Sinal técnico isolado não justifica decisão de compra/venda."]
+  },
+  {
+    "id": "ts-003",
+    "category": "technical_signal",
+    "tool_expected": "technical_signal",
+    "query": "Qual o MACD atual de VALE3?",
+    "expected_answer": "Valor numérico do MACD diff de VALE3 com indicação de momentum.",
+    "contexts": ["MACD = EMA12 - EMA26; sinal = EMA9(MACD); diff = MACD - sinal."]
+  },
+  {
+    "id": "ts-004",
+    "category": "technical_signal",
+    "tool_expected": "technical_signal",
+    "query": "ITUB4 está perto da banda inferior de Bollinger?",
+    "expected_answer": "Resposta usa %B; se %B < 0.2 = próximo da banda inferior.",
+    "contexts": ["%B = (close - banda_inf) / (banda_sup - banda_inf)."]
+  },
+  {
+    "id": "rg-001",
+    "category": "qualitative_rag",
+    "tool_expected": "search_reports",
+    "query": "Quais os principais riscos mencionados nos relatórios da Petrobras?",
+    "expected_answer": "Resposta deve sintetizar riscos extraídos dos PDFs indexados (preço do petróleo, regulação, ambientais, geopolíticos).",
+    "contexts": ["Relatórios anuais costumam ter seção de riscos (item 4 do formulário 20-F)."]
+  },
+  {
+    "id": "rg-002",
+    "category": "qualitative_rag",
+    "tool_expected": "search_reports",
+    "query": "O que os relatórios da Vale dizem sobre o preço do minério de ferro?",
+    "expected_answer": "Síntese das menções a minério de ferro nos PDFs (volumes, preços médios, projeções).",
+    "contexts": ["Vale reporta receitas separadas por minério de ferro, níquel e cobre."]
+  },
+  {
+    "id": "rg-003",
+    "category": "qualitative_rag",
+    "tool_expected": "search_reports",
+    "query": "Qual a estratégia de dividendos descrita pela WEG nos seus relatórios?",
+    "expected_answer": "Política de pagamento de dividendos da WEG conforme texto dos relatórios indexados.",
+    "contexts": ["WEG historicamente reinveste boa parte do lucro em crescimento orgânico."]
+  },
+  {
+    "id": "rg-004",
+    "category": "qualitative_rag",
+    "tool_expected": "search_reports",
+    "query": "Resuma o desempenho da carteira de crédito do Itaú nos últimos relatórios.",
+    "expected_answer": "Trechos sobre crescimento da carteira de crédito, inadimplência (NPL) e provisões.",
+    "contexts": ["Itaú reporta carteira de crédito ampliada por segmento (PF, PJ, large corporates)."]
+  },
+  {
+    "id": "rg-005",
+    "category": "qualitative_rag",
+    "tool_expected": "search_reports",
+    "query": "O Bradesco comenta sobre eficiência operacional?",
+    "expected_answer": "Trechos sobre índice de eficiência (cost-to-income) e iniciativas de redução de custos.",
+    "contexts": ["Bancos brasileiros costumam reportar índice de eficiência entre 35% e 50%."]
+  },
+  {
+    "id": "mx-001",
+    "category": "mixed",
+    "tool_expected": "annual_returns,compare_fundamentals",
+    "query": "A ação que mais subiu em 2024 também tem o maior dividend yield?",
+    "expected_answer": "Resposta exige duas tools: identificar vencedor de 2024 e cruzar com dividend_yield em fundamentos.",
+    "contexts": ["Pergunta multi-hop combinando série temporal + snapshot de fundamentos."]
+  },
+  {
+    "id": "mx-002",
+    "category": "mixed",
+    "tool_expected": "portfolio_risk,technical_signal",
+    "query": "Para uma carteira PETR4 e VALE3, há algum sinal técnico de sobrecompra hoje?",
+    "expected_answer": "Combina relatório de risco de 2 tickers + leitura técnica individual de cada um.",
+    "contexts": ["Pergunta multi-hop: risco da carteira + sinal técnico por ticker."]
+  }
+]

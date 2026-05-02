@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mlet-phase5"
-version = "0.2.0"
-description = "MLET Phase 5 Datathon — LLMs e Agentes (Fases 1–2)"
+version = "0.3.0"
+description = "MLET Phase 5 Datathon — LLMs e Agentes (Fases 1–3)"
 requires-python = ">=3.11"
 dependencies = [
     # Núcleo de dados/ML (Fase 1)
@@ -46,6 +46,20 @@ serve = [
     "sentence-transformers>=3.0.0",
     "faiss-cpu>=1.8.0",
     "pypdf>=4.2.0",
+]
+eval = [
+    # RAGAS — 4 métricas obrigatórias (faithfulness, answer_relevancy,
+    # context_precision, context_recall) — replicado do guia (Etapa 3).
+    "ragas>=0.1.12",
+    "datasets>=2.19.0",
+]
+monitor = [
+    # Drift detection (Evidently — replicado do guia GAP 06)
+    "evidently>=0.4.30",
+    # Métricas operacionais expostas em /metrics
+    "prometheus-client>=0.20.0",
+    # Telemetria do agente / LLM (qualidade de resposta)
+    "langfuse>=2.0.0",
 ]
 dev = [
     "pytest>=8.2.0",

@@ -1,25 +1,43 @@
-"""FastAPI servindo o LLM quantizado e o agente ReAct — Etapa 2.
+"""FastAPI servindo o LLM quantizado e o agente ReAct — Etapas 2 e 3.
 
 Endpoints:
     GET  /health         — liveness/readiness.
+    GET  /metrics        — exposição Prometheus (Etapa 3).
     POST /llm/complete   — completion direta no LLM local quantizado (GGUF Q4_K_M).
     POST /agent/chat     — pergunta → agente ReAct → ferramentas → resposta.
 
 O LLM é carregado via ``llama-cpp-python`` a partir de um arquivo GGUF
 quantizado (variável de ambiente ``LLM_MODEL_PATH``), satisfazendo o critério
 de aceite "LLM servido via API com quantização aplicada".
+
+Instrumentação (Etapa 3):
+* Middleware mede latência e contagem por ``endpoint`` e ``status``.
+* Tokens do LLM e iterações do agente vão para Prometheus.
+* (Opcional) Langfuse: se ``LANGFUSE_HOST`` estiver definido, telemetria
+  qualitativa do LLM é enviada para o servidor configurado.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import time
 from functools import lru_cache
 from typing import Any
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
+
+from src.monitoring.metrics import (
+    agent_iterations,
+    agent_question_failures_total,
+    http_request_latency_seconds,
+    http_requests_total,
+    llm_latency_seconds,
+    llm_tokens_total,
+    render_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -96,14 +114,31 @@ def get_agent():
 
 app = FastAPI(
     title="Datathon Fase 5 — LLM + Agente",
-    version="0.2.0",
-    description="API do agente financeiro com LLM quantizado e RAG sobre relatórios PDF.",
+    version="0.3.0",
+    description="API do agente financeiro com LLM quantizado, RAG e telemetria.",
 )
+
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed = time.perf_counter() - start
+    endpoint = request.url.path
+    http_requests_total.labels(endpoint=endpoint, status=str(response.status_code)).inc()
+    http_request_latency_seconds.labels(endpoint=endpoint).observe(elapsed)
+    return response
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    payload, content_type = render_metrics()
+    return Response(content=payload, media_type=content_type)
 
 
 @app.post("/llm/complete", response_model=CompletionResponse)
@@ -113,12 +148,23 @@ def llm_complete(req: CompletionRequest) -> CompletionResponse:
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    start = time.perf_counter()
     out = llm(prompt=req.prompt, max_tokens=req.max_tokens, temperature=req.temperature)
+    llm_latency_seconds.labels(endpoint="/llm/complete").observe(time.perf_counter() - start)
+
     choice = out["choices"][0]
+    usage = out.get("usage", {})
+    for kind in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        if kind in usage:
+            llm_tokens_total.labels(
+                endpoint="/llm/complete",
+                kind=kind.replace("_tokens", ""),
+            ).inc(int(usage[kind]))
+
     return CompletionResponse(
         completion=choice["text"],
         model=os.path.basename(os.environ.get("LLM_MODEL_PATH", "gguf-quantized")),
-        tokens_used=int(out.get("usage", {}).get("total_tokens", 0)),
+        tokens_used=int(usage.get("total_tokens", 0)),
     )
 
 
@@ -127,10 +173,15 @@ def agent_chat(req: ChatRequest) -> ChatResponse:
     try:
         agent = get_agent()
     except (RuntimeError, ImportError) as exc:
+        agent_question_failures_total.labels(reason="agent_unavailable").inc()
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-    result = agent.invoke({"input": req.question})
-    return ChatResponse(
-        answer=str(result.get("output", "")),
-        intermediate_steps=len(result.get("intermediate_steps", []) or []),
-    )
+    try:
+        result = agent.invoke({"input": req.question})
+    except Exception as exc:  # noqa: BLE001
+        agent_question_failures_total.labels(reason=type(exc).__name__).inc()
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    steps = len(result.get("intermediate_steps", []) or [])
+    agent_iterations.observe(steps)
+    return ChatResponse(answer=str(result.get("output", "")), intermediate_steps=steps)
