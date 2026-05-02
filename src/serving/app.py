@@ -35,6 +35,7 @@ from pydantic import BaseModel, Field
 from src.monitoring.metrics import (
     agent_iterations,
     agent_question_failures_total,
+    agent_tool_calls_total,
     http_request_latency_seconds,
     http_requests_total,
     llm_latency_seconds,
@@ -163,7 +164,7 @@ def metrics() -> Response:
 def llm_complete(req: CompletionRequest) -> CompletionResponse:
     try:
         llm = get_llm()
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     start = time.perf_counter()
@@ -211,8 +212,11 @@ def agent_chat(req: ChatRequest) -> ChatResponse:
         agent_question_failures_total.labels(reason=type(exc).__name__).inc()
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    steps = len(result.get("intermediate_steps", []) or [])
+    intermediate = result.get("intermediate_steps", []) or []
+    steps = len(intermediate)
     agent_iterations.observe(steps)
+    for action, _ in intermediate:
+        agent_tool_calls_total.labels(tool=action.tool).inc()
 
     # Etapa 4 — output guardrail (PII redacted).
     raw_answer = str(result.get("output", ""))

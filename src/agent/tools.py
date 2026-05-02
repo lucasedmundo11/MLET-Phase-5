@@ -181,7 +181,8 @@ def portfolio_risk(query: str) -> str:
     port_ret = log_ret.values @ weights
     vol_annual = port_ret.std() * np.sqrt(252)
     var_95 = float(np.quantile(port_ret, 0.05))
-    drawdown = (port_ret.cumsum().min() - port_ret.cumsum().max()).item()
+    cum = pd.Series(port_ret).cumsum()
+    drawdown = float((cum - cum.cummax()).min())
     corr = log_ret.corr()
 
     lines = [
@@ -261,8 +262,15 @@ def build_default_tools(retriever: Callable[[str, int], list[str]] | None = None
             name="compare_fundamentals",
             func=compare_fundamentals,
             description=(
-                "Compara fundamentos (P/L, ROE, Dividend Yield) entre tickers. "
-                "Use input 'tickers=PETR4,VALE3' ou 'tickers=PETR4,VALE3,metric=pe_ratio'."
+                "Compara fundamentos entre tickers. "
+                "Métricas disponíveis: "
+                "pe_ratio (P/L), roe (ROE), dividend_yield (Dividend Yield), sector. "
+                "Exemplos de input: "
+                "'tickers=PETR4,VALE3' para todas as métricas; "
+                "'tickers=PETR4,WEGE3,metric=dividend_yield' para Dividend Yield; "
+                "'tickers=ITUB4,BBDC4,metric=roe' para ROE; "
+                "'tickers=PETR4,VALE3,metric=pe_ratio' para P/L. "
+                "Sempre use o campo 'metric=' quando a pergunta mencionar uma métrica específica."
             ),
         ),
         Tool(

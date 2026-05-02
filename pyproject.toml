@@ -36,12 +36,14 @@ serve = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.7.0",
-    # LLM serving (quantização aplicada via GGUF Q4_K_M)
-    "llama-cpp-python>=0.2.80",
-    # Agente ReAct (replicação do guia oficial)
-    "langchain>=0.2.0",
-    "langchain-community>=0.2.0",
-    "langchain-openai>=0.1.0",
+    # Prometheus metrics exposed at /metrics (required at module-load time)
+    "prometheus-client>=0.20.0",
+    # LLM serving (quantização aplicada via GGUF Q4_K_M); [server] pulls sse-starlette
+    "llama-cpp-python[server]>=0.2.80",
+    # Agente ReAct (replicação do guia oficial — API 0.x: AgentExecutor + create_react_agent)
+    "langchain>=0.2.0,<1.0.0",
+    "langchain-community>=0.2.0,<1.0.0",
+    "langchain-openai>=0.1.0,<1.0.0",
     # RAG
     "sentence-transformers>=3.0.0",
     "faiss-cpu>=1.8.0",

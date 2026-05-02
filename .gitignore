@@ -36,7 +36,7 @@ coverage.xml
 
 # MLflow
 mlruns/
-mlartifacts/
+mlflow-artifacts/
 mlflow.db
 
 # Output artifacts (apenas na raiz — NÃO ignorar src/models/, src/monitoring/metrics.py)
@@ -48,3 +48,6 @@ mlflow.db
 
 # OS
 .DS_Store
+
+# Claude
+.claude/

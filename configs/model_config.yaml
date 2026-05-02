@@ -30,4 +30,4 @@ training:
 
 mlflow:
   experiment_name: mlet-phase5-baseline
-  tracking_uri: http://localhost:5000
+  tracking_uri: file:./mlruns

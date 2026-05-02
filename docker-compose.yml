@@ -2,20 +2,21 @@ version: "3.9"
 
 services:
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.13.0
+    image: ghcr.io/mlflow/mlflow:v3.1.1
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/mlflow.db
       - MLFLOW_ARTIFACT_ROOT=/mlflow/artifacts
     volumes:
-      - mlflow_data:/mlflow
+      - ./mlflow-artifacts:/mlflow
     command: >
       mlflow server
       --host 0.0.0.0
       --port 5000
       --backend-store-uri sqlite:///mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
 
   trainer:
     build:
@@ -31,6 +32,31 @@ services:
       - ./models:/app/models
     profiles: ["train"]
 
+  llm-server:
+    build:
+      context: .
+      dockerfile: src/serving/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - LLM_MODEL_PATH=${LLM_MODEL_PATH:-/models/qwen2.5-3b-instruct-q4_k_m.gguf}
+    volumes:
+      - ./models:/models:ro
+    command: >-
+      python -m llama_cpp.server
+      --model /models/qwen2.5-3b-instruct-q4_k_m.gguf
+      --host 0.0.0.0
+      --port 8001
+      --n_ctx 4096
+      --n_threads 4
+      --chat_format chatml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/v1/models"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
   api:
     build:
       context: .
@@ -39,10 +65,15 @@ services:
       - "8000:8000"
     environment:
       - LLM_MODEL_PATH=${LLM_MODEL_PATH:-/models/qwen2.5-3b-instruct-q4_k_m.gguf}
+      - OPENAI_API_BASE=http://llm-server:8001/v1
+      - OPENAI_API_KEY=sk-local-quantized
       - PYTHONPATH=/app
     volumes:
       - ./data:/app/data
       - ./models:/models:ro
+    depends_on:
+      llm-server:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -75,6 +106,5 @@ services:
       - prometheus
 
 volumes:
-  mlflow_data:
   prometheus_data:
   grafana_data:

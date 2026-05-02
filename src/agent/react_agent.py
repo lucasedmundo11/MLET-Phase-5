@@ -17,7 +17,7 @@ import os
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
 from langchain.tools import Tool
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,7 @@ def create_datathon_agent(
         agent=agent,
         tools=tools,
         verbose=True,
-        max_iterations=10,
+        max_iterations=15,
         handle_parsing_errors=True,
+        return_intermediate_steps=True,
     )
