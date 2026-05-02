@@ -47,11 +47,13 @@ jobs:
             metrics/drift.json
             data/processed/drift_reports/
 
-      - name: Fail if critical (visibilidade no badge)
+      - name: Annotate critical drift (retraining will fire)
+        # Drift crítico é o caminho feliz do GAP 07: detectamos → disparamos
+        # retraining. Não falhamos a run; emitimos warning para visibilidade
+        # no resumo, mantendo o badge verde quando o pipeline funciona.
         if: steps.check.outputs.status == 'critical'
         run: |
-          echo "::error title=Drift critical::PSI máximo ≥ 0.20 — disparando retraining."
-          exit 1
+          echo "::warning title=Drift critical::PSI máximo ≥ 0.20 — disparando retraining via repository_dispatch."
 
   trigger-retraining:
     needs: drift
