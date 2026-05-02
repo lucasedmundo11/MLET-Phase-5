@@ -130,6 +130,19 @@ omit = [
     # Entrypoints CLI: testados em integração via DVC/Docker, não em pytest.
     "src/models/train.py",
     "src/features/feature_engineering.py",
+    # Módulos com dependências opcionais pesadas não instaladas no job `quality`
+    # (CI usa apenas `.[dev]`). Cobertura real existe nos respectivos extras:
+    #   * serving/app.py, react_agent.py, rag_pipeline.py → `.[serve]`
+    #     (testados via Docker `mlet-phase5-api` no job `build`).
+    #   * security/pii_detection.py → `.[security]` (skipif gate em
+    #     tests/test_guardrails.py — exige presidio + spaCy PT).
+    #   * monitoring/drift.py → `.[monitor]` (Evidently — rodado offline
+    #     via `python -m src.monitoring.drift`).
+    "src/serving/app.py",
+    "src/agent/react_agent.py",
+    "src/agent/rag_pipeline.py",
+    "src/security/pii_detection.py",
+    "src/monitoring/drift.py",
 ]
 
 [tool.coverage.report]
