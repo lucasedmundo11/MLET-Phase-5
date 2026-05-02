@@ -10,9 +10,6 @@ guia oficial do Datathon — Fase 05.
 import logging
 import re
 
-from presidio_analyzer import AnalyzerEngine
-from presidio_anonymizer import AnonymizerEngine
-
 logger = logging.getLogger(__name__)
 
 
@@ -61,6 +58,9 @@ class OutputGuardrail:
     """Valida e sanitiza output do LLM antes de retornar ao usuário."""
 
     def __init__(self, language: str = "pt"):
+        from presidio_analyzer import AnalyzerEngine
+        from presidio_anonymizer import AnonymizerEngine
+
         self.analyzer = AnalyzerEngine()
         self.anonymizer = AnonymizerEngine()
         self.language = language
