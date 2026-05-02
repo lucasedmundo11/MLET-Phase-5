@@ -58,15 +58,25 @@ def _normalize_ticker(ticker: str) -> str:
 
 
 def _parse_kv(text: str) -> dict[str, str]:
-    """Aceita ``ticker=PETR4,year=2024`` ou JSON ``{"ticker":"PETR4"}``."""
+    """Aceita ``ticker=PETR4,year=2024`` ou JSON ``{"ticker":"PETR4"}``.
+
+    Chunks sem ``=`` são anexados ao último valor — assim
+    ``tickers=PETR4,VALE3,weights=0.6,0.4`` vira
+    ``{"tickers": "PETR4,VALE3", "weights": "0.6,0.4"}`` em vez de descartar
+    silenciosamente os elementos seguintes da lista.
+    """
     text = text.strip()
     if text.startswith("{"):
         return {str(k): str(v) for k, v in json.loads(text).items()}
     out: dict[str, str] = {}
+    last_key: str | None = None
     for chunk in text.split(","):
         if "=" in chunk:
             k, v = chunk.split("=", 1)
-            out[k.strip().lower()] = v.strip()
+            last_key = k.strip().lower()
+            out[last_key] = v.strip()
+        elif last_key is not None and chunk.strip():
+            out[last_key] = f"{out[last_key]},{chunk.strip()}"
     return out
 
 
