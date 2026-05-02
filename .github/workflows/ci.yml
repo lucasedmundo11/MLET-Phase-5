@@ -2,9 +2,29 @@ name: Datathon CI
 
 on:
   push:
-    paths: ['src/**', 'tests/**', 'evaluation/**']
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'evaluation/**'
+      - 'scripts/**'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - '.github/workflows/**'
   pull_request:
-    paths: ['src/**', 'tests/**', 'evaluation/**']
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'evaluation/**'
+      - 'scripts/**'
+      - 'pyproject.toml'
+      - 'Makefile'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Motivo do trigger manual (audit trail)"
+        required: false
+        default: "manual rerun"
 
 jobs:
   quality:
