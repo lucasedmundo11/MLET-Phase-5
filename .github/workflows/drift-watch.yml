@@ -57,13 +57,19 @@ jobs:
     needs: drift
     if: needs.drift.outputs.status == 'critical'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # necessário para repository_dispatch
     steps:
       - name: Dispatch event-driven retraining
+        # Usa RETRAIN_DISPATCH_TOKEN (PAT) em vez de GITHUB_TOKEN porque
+        # eventos disparados pelo GITHUB_TOKEN não criam novas runs de
+        # workflow — limitação documentada do Actions para evitar loops.
+        # Sem o secret configurado, falhamos cedo com mensagem clara.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RETRAIN_DISPATCH_TOKEN }}
         run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "::error title=Missing secret::RETRAIN_DISPATCH_TOKEN não configurado. Crie um PAT (Actions: read/write) e adicione-o em Settings → Secrets → Actions."
+            exit 1
+          fi
           gh api "repos/${{ github.repository }}/dispatches" \
             -f event_type=drift-detected \
             -f "client_payload[reason]=drift_critical" \
