@@ -54,8 +54,11 @@ eval = [
     "datasets>=2.19.0",
 ]
 monitor = [
-    # Drift detection (Evidently — replicado do guia GAP 06)
-    "evidently>=0.4.30",
+    # Drift detection (Evidently — replicado do guia GAP 06).
+    # Upper bound em <0.5: a 0.5 removeu `evidently.metric_preset` e
+    # `evidently.report.Report.run()` (migração para `evidently.presets` +
+    # `Snapshot`), quebrando o snippet replicado do guia em src/monitoring/drift.py.
+    "evidently>=0.4.30,<0.5",
     # Métricas operacionais expostas em /metrics
     "prometheus-client>=0.20.0",
     # Telemetria do agente / LLM (qualidade de resposta)
