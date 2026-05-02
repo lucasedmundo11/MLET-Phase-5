@@ -100,10 +100,15 @@ select = ["E", "F", "I", "N", "W", "UP"]
 known-first-party = ["src", "tests", "evaluation", "scripts"]
 
 [tool.ruff.lint.per-file-ignores]
-# Convenção ML do próprio guia (p. 13 do PDF): X = features, y = target.
-# Aceita X em letra maiúscula nos testes e no train.py replicado verbatim.
+# Convenção ML do próprio guia (p. 13 do PDF) e da scikit-learn:
+#   - X = matriz de features (uppercase)
+#   - y = vetor target (lowercase)
+#   - C = parâmetro de regularização (nome literal do sklearn LogisticRegression;
+#     renomear quebraria a API esperada pelo usuário).
+# N803: argumento maiúsculo (X, C). N806: variável local maiúscula (X_arr, X_t).
 "tests/test_models.py" = ["N806"]
 "src/models/train.py" = ["N806"]
+"src/models/baseline.py" = ["N803", "N806"]
 
 [tool.mypy]
 python_version = "3.11"

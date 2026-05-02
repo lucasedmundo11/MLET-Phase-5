@@ -90,7 +90,7 @@ class MLPClassifierTorch:
         self._model: _MLPModule | None = None
         self._device = torch.device("cpu")
 
-    def fit(self, X: pd.DataFrame | np.ndarray, y: pd.Series | np.ndarray) -> "MLPClassifierTorch":
+    def fit(self, X: pd.DataFrame | np.ndarray, y: pd.Series | np.ndarray) -> MLPClassifierTorch:
         torch.manual_seed(self.random_state)
         X_arr = self._scaler.fit_transform(np.asarray(X, dtype=np.float32))
         y_arr = np.asarray(y, dtype=np.float32).reshape(-1, 1)
