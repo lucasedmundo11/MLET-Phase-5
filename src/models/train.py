@@ -153,8 +153,8 @@ def _training_data_version() -> str:
                     md5 = o.get("md5") or o.get("hash")
                     if md5:
                         return f"dvc:{md5[:12]}"
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("Falha ao ler dvc.lock (%s); usando fallback SHA256.", exc)
     if PROCESSED_PATH.exists():
         h = hashlib.sha256(PROCESSED_PATH.read_bytes()).hexdigest()
         return f"sha256:{h[:12]}"

@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
-import pickle
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
@@ -23,7 +22,9 @@ logger = logging.getLogger(__name__)
 REPORTS_DIR = Path("data/raw/reports")
 INDEX_DIR = Path("data/processed/rag_index")
 INDEX_FILE = INDEX_DIR / "faiss.index"
-CHUNKS_FILE = INDEX_DIR / "chunks.pkl"
+# Chunks serializados em JSON (não pickle): trivial, auditável, sem risco de
+# code execution na desserialização (bandit B301/B403).
+CHUNKS_FILE = INDEX_DIR / "chunks.json"
 META_FILE = INDEX_DIR / "meta.json"
 
 DEFAULT_EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -104,8 +105,8 @@ def build_index(
 
     out_dir.mkdir(parents=True, exist_ok=True)
     faiss.write_index(index, str(out_dir / "faiss.index"))
-    with open(out_dir / "chunks.pkl", "wb") as f:
-        pickle.dump(chunks, f)
+    with open(out_dir / "chunks.json", "w", encoding="utf-8") as f:
+        json.dump([asdict(c) for c in chunks], f, ensure_ascii=False)
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -136,8 +137,8 @@ class Retriever:
             meta = json.load(f)
         self.model = SentenceTransformer(meta["embed_model"])
         self.index = faiss.read_index(str(index_dir / "faiss.index"))
-        with open(index_dir / "chunks.pkl", "rb") as f:
-            self.chunks: list[Chunk] = pickle.load(f)
+        with open(index_dir / "chunks.json", encoding="utf-8") as f:
+            self.chunks: list[Chunk] = [Chunk(**c) for c in json.load(f)]
         self.meta = meta
 
     def search(self, query: str, top_k: int = 4) -> list[str]:

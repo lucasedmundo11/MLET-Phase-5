@@ -148,3 +148,8 @@ skip_covered = false
 
 [tool.bandit]
 exclude_dirs = ["tests"]
+# Skips justificados (não são supressões cosméticas):
+# - B404/B603/B607: chamada `subprocess.run(["git","rev-parse","--short","HEAD"])`
+#   em src/models/train.py para capturar git_sha (tag obrigatória do GAP 05).
+#   Args 100% hardcoded, sem entrada de usuário, sem shell=True.
+skips = ["B404", "B603", "B607"]
