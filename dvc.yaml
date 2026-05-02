@@ -2,27 +2,22 @@ stages:
   prepare:
     cmd: python -m src.features.feature_engineering
     deps:
-      - data/raw
       - src/features/feature_engineering.py
+      - configs/model_config.yaml
     outs:
-      - data/processed
+      - data/raw/prices_raw.parquet
+      - data/processed/prices_features.parquet
+      - data/processed/fundamentals.parquet
 
   train:
     cmd: python -m src.models.train
     deps:
-      - data/processed
+      - data/processed/prices_features.parquet
       - src/models/baseline.py
       - src/models/train.py
       - configs/model_config.yaml
     outs:
       - models/
-
-  evaluate:
-    cmd: python evaluation/ragas_eval.py
-    deps:
-      - data/golden_set
-      - evaluation/ragas_eval.py
-      - evaluation/llm_judge.py
     metrics:
-      - metrics/ragas_scores.json:
+      - metrics/baseline_runs.json:
           cache: false

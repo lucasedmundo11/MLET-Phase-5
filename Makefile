@@ -1,29 +1,26 @@
-.PHONY: install train serve test lint format clean
+.PHONY: install data train test lint format dvc-repro docker-up docker-down clean
 
 install:
-	uv pip install -e ".[dev,eval]"
+	uv pip install -e ".[dev]"
+
+data:
+	python -m src.features.feature_engineering
 
 train:
 	python -m src.models.train
-
-serve:
-	uvicorn src.serving.app:app --host 0.0.0.0 --port 8000 --reload
 
 test:
 	pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=60
 
 lint:
-	ruff check src/ tests/ evaluation/
+	ruff check src/ tests/
 	mypy src/ --ignore-missing-imports
 
 format:
-	ruff format src/ tests/ evaluation/
+	ruff format src/ tests/
 
-evaluate:
-	python evaluation/ragas_eval.py
-
-ab-test:
-	python evaluation/ab_test_prompts.py
+dvc-repro:
+	dvc repro
 
 docker-up:
 	docker-compose up --build -d

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import json; json.load\\(open\\('notebooks/01_eda.ipynb', encoding='utf-8'\\)\\); print\\('notebook OK'\\)\")"
+    ]
+  }
+}

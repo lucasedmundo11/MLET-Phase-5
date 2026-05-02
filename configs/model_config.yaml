@@ -1,5 +1,16 @@
+data:
+  tickers:
+    - PETR4.SA
+    - VALE3.SA
+    - ITUB4.SA
+    - BBDC4.SA
+    - WEGE3.SA
+  period: "5y"
+  interval: "1d"
+  target_horizon: 1
+
 model:
-  name: baseline
+  name: baseline_logreg
   type: logistic_regression
   hyperparameters:
     C: 1.0
@@ -16,13 +27,7 @@ mlp:
 training:
   test_size: 0.2
   random_state: 42
-  experiment_name: mlet-phase5
-  required_tags:
-    - model_version
-    - dataset_version
-    - author
-    - environment
 
 mlflow:
-  tracking_uri: http://mlflow:5000
-  artifact_location: s3://mlet-phase5-artifacts/mlflow
+  experiment_name: mlet-phase5-baseline
+  tracking_uri: http://localhost:5000
