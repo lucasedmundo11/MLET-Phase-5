@@ -29,6 +29,25 @@ services:
       - ./data:/app/data
       - ./metrics:/app/metrics
       - ./models:/app/models
+    profiles: ["train"]
+
+  api:
+    build:
+      context: .
+      dockerfile: src/serving/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_MODEL_PATH=${LLM_MODEL_PATH:-/models/qwen2.5-3b-instruct-q4_k_m.gguf}
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data
+      - ./models:/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   mlflow_data:

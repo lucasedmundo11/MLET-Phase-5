@@ -1,16 +1,24 @@
 # MLET-Phase-5 — Datathon (LLMs e Agentes)
 
-Repositório do Datathon — Fase 5. O entregável final é um agente conversacional
-sobre o universo PETR4, VALE3, ITUB4, BBDC4, WEGE3 (B3). Esta release cobre a
-**Etapa 1 — Dados + Baseline**.
+Repositório do Datathon — Fase 5. Entregável final: agente conversacional sobre
+o universo PETR4, VALE3, ITUB4, BBDC4, WEGE3 (B3). Esta release cobre as
+**Etapas 1 e 2** do guia oficial.
 
-## Etapa 1 — entregáveis
+## Status do checklist
 
-- ✅ EDA documentada com insights relevantes — [notebooks/01_eda.ipynb](notebooks/01_eda.ipynb).
-- ✅ Baseline treinado (LogReg + MLP PyTorch) e métricas reportadas no MLflow — [src/models/train.py](src/models/train.py).
-- ✅ Pipeline versionado com DVC e Docker — [dvc.yaml](dvc.yaml) + [Dockerfile](Dockerfile) + [docker-compose.yml](docker-compose.yml).
-- ✅ Métricas de negócio mapeadas para métricas técnicas — [docs/BUSINESS_METRICS.md](docs/BUSINESS_METRICS.md).
-- ✅ `pyproject.toml` com todas as dependências da fase — [pyproject.toml](pyproject.toml).
+### Etapa 1 — Dados + Baseline
+- ✅ EDA documentada — [notebooks/01_eda.ipynb](notebooks/01_eda.ipynb)
+- ✅ Baseline (LogReg + MLP PyTorch) com MLflow — [src/models/train.py](src/models/train.py)
+- ✅ Pipeline DVC + Docker — [dvc.yaml](dvc.yaml), [Dockerfile](Dockerfile)
+- ✅ Métricas de negócio × técnicas — [docs/BUSINESS_METRICS.md](docs/BUSINESS_METRICS.md)
+- ✅ `pyproject.toml` com todas as dependências — [pyproject.toml](pyproject.toml)
+
+### Etapa 2 — LLM + Agente
+- ✅ LLM servido via API com quantização (GGUF Q4_K_M / Q5_K_M via `llama-cpp-python`) — [src/serving/app.py](src/serving/app.py)
+- ✅ Agente ReAct com 5 tools (≥ 3 exigidas) — [src/agent/react_agent.py](src/agent/react_agent.py), [src/agent/tools.py](src/agent/tools.py)
+- ✅ RAG sobre PDFs (chunks → embeddings multilingues → FAISS) — [src/agent/rag_pipeline.py](src/agent/rag_pipeline.py)
+- ✅ CI/CD GitHub Actions (lint + mypy + bandit + pytest + build) — [.github/workflows/ci.yml](.github/workflows/ci.yml)
+- ✅ Benchmark com 3 configurações — [docs/BENCHMARK.md](docs/BENCHMARK.md)
 
 ## Pré-requisitos
 
@@ -19,83 +27,94 @@ Python 3.11+, [uv](https://github.com/astral-sh/uv), Docker.
 ## Setup local
 
 ```bash
-# 1. Clone
 git clone <repo-url> && cd MLET-Phase-5
-
-# 2. Virtualenv + dependências
 uv venv .venv
-.venv\Scripts\activate                # Windows PowerShell
-uv pip install -e ".[dev]"
-
-# 3. Variáveis de ambiente
+.venv\Scripts\activate                   # Windows PowerShell
+uv pip install -e ".[dev,serve]"          # já inclui Etapas 1 e 2
 copy .env.example .env
-
-# 4. Hooks de qualidade
 pre-commit install
 ```
 
-## Reprodução do pipeline da Etapa 1
-
-### Opção A — via Makefile (host)
+## Reprodução — Etapa 1
 
 ```bash
-make data        # baixa yfinance + calcula features → data/processed/*.parquet
-make train       # treina LogReg + MLP, loga em MLflow → metrics/baseline_runs.json
+make data        # baixa yfinance + features → data/processed/*.parquet
+make train       # treina LogReg + MLP, loga em MLflow
 make test        # pytest com cov ≥ 60%
 ```
 
-### Opção B — via DVC
+Ou via DVC: `dvc repro`. Ou via Docker: `make docker-up` (sobe MLflow).
+
+## Reprodução — Etapa 2
 
 ```bash
-dvc repro        # executa stages prepare → train respeitando deps/outs
+# 1. Faça o download de um GGUF quantizado (ex. Qwen2.5-3B-Instruct-Q4_K_M)
+#    e exporte o caminho:
+$env:LLM_MODEL_PATH = "C:\models\qwen2.5-3b-instruct-q4_k_m.gguf"
+
+# 2. (Opcional) Indexe relatórios PDF colocados em data/raw/reports/
+make rag-index
+
+# 3. Suba a API (FastAPI + LLM quantizado + agente)
+make serve
+# → http://localhost:8000/docs   (Swagger)
+
+# 4. Pergunte algo ao agente
+curl -X POST http://localhost:8000/agent/chat ^
+     -H "Content-Type: application/json" ^
+     -d "{\"question\": \"Qual ação teve maior retorno em 2024?\"}"
+
+# 5. Rode o benchmark (≥ 3 configs)
+make benchmark
 ```
 
-### Opção C — via Docker (totalmente reprodutível)
-
-```bash
-make docker-up   # sobe MLflow + container trainer
-# o container trainer executa: feature_engineering -> train
-# acompanhe os runs em http://localhost:5000
-```
-
-| Serviço | URL                     |
-|---------|-------------------------|
-| MLflow  | <http://localhost:5000> |
-
-## Estrutura — Etapa 1
+## Estrutura
 
 ```
 src/
-├── features/
-│   └── feature_engineering.py   # yfinance + RSI/MACD/BB + fundamentos
-└── models/
-    ├── baseline.py              # LogReg + MLP PyTorch (mesma API sklearn)
-    └── train.py                 # MLflow tracking padronizado (replicado do guia)
+├── features/feature_engineering.py   # Etapa 1: yfinance + RSI/MACD/BB
+├── models/
+│   ├── baseline.py                   # Etapa 1: LogReg + MLP PyTorch
+│   └── train.py                      # Etapa 1: MLflow tracking padronizado
+├── agent/
+│   ├── tools.py                      # Etapa 2: 5 tools de domínio
+│   ├── rag_pipeline.py               # Etapa 2: PDF → FAISS retriever
+│   └── react_agent.py                # Etapa 2: ReAct (replicado do guia)
+└── serving/
+    ├── app.py                        # Etapa 2: FastAPI + LLM quantizado
+    └── Dockerfile
 tests/
-├── conftest.py                  # OHLCV sintético
-├── test_features.py             # schema contracts (pandera)
-└── test_models.py               # determinismo + binariedade
-configs/
-└── model_config.yaml            # tickers, hiperparâmetros, MLflow
-notebooks/
-└── 01_eda.ipynb                 # EDA + insights
+├── conftest.py
+├── test_features.py / test_models.py # Etapa 1
+└── test_agent.py / test_api.py       # Etapa 2 (LLM mockado)
+scripts/
+├── build_rag_index.py
+└── run_benchmark.py
 docs/
-└── BUSINESS_METRICS.md          # métricas de negócio × técnicas
-dvc.yaml                          # stages: prepare → train
-Dockerfile                        # container reprodutível da Etapa 1
-docker-compose.yml                # MLflow + trainer
+├── BUSINESS_METRICS.md
+└── BENCHMARK.md
+configs/
+├── model_config.yaml
+└── llm_config.yaml
+.github/workflows/ci.yml              # lint → mypy → bandit → pytest → build
 ```
 
-## Métricas e tags padronizadas (MLflow)
+## Tools expostas pelo agente
 
-Conforme o guia do Datathon (Nível 2 de maturidade em *Experiment Management*),
-cada run loga obrigatoriamente:
+| Tool                  | Pergunta-alvo                                   |
+|-----------------------|-------------------------------------------------|
+| `annual_returns`      | "Qual ação teve maior retorno em 2024?"          |
+| `compare_fundamentals`| "Compare PETR4 e VALE3 pelo P/L."                |
+| `portfolio_risk`      | "Gere um relatório de risco da carteira X."      |
+| `technical_signal`    | "Qual o sinal técnico atual de PETR4?"           |
+| `search_reports`      | RAG sobre PDFs (perguntas qualitativas)          |
 
-- **Métricas:** `auc`, `precision`, `recall`, `f1`.
-- **Parâmetros:** hiperparâmetros do modelo + `test_size`, `random_state`,
-  `n_features`, `n_samples_train`.
-- **Tags:** `model_type`, `framework`, `owner`, `phase`.
-- **Artefatos:** modelo serializado (`mlflow.sklearn.log_model`).
+## Onde os critérios de aceite são satisfeitos
 
-O detalhamento de como cada métrica técnica conecta com as perguntas de
-negócio do agente está em [docs/BUSINESS_METRICS.md](docs/BUSINESS_METRICS.md).
+| Critério (guia)                                | Arquivo                                      |
+|------------------------------------------------|----------------------------------------------|
+| LLM via API com quantização                    | `src/serving/app.py::get_llm` (GGUF Q4/Q5)   |
+| Agente ReAct ≥ 3 tools                         | `src/agent/react_agent.py` + `tools.py` (5)  |
+| RAG retornando contexto relevante              | `src/agent/rag_pipeline.py` (FAISS + MiniLM) |
+| CI/CD funcional                                 | `.github/workflows/ci.yml`                   |
+| Benchmark ≥ 3 configurações                    | `docs/BENCHMARK.md` + `scripts/run_benchmark.py` |

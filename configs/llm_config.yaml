@@ -1,0 +1,18 @@
+llm:
+  # Caminho do GGUF quantizado (Q4_K_M / Q5_K_M).
+  # Pode ser sobrescrito via variável de ambiente LLM_MODEL_PATH.
+  model_path: ""
+  n_ctx: 4096
+  n_threads: 4
+  n_gpu_layers: 0
+
+agent:
+  model_name: "qwen2.5-3b-instruct"
+  temperature: 0.0
+  max_iterations: 10
+
+rag:
+  embed_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  chunk_size: 800
+  chunk_overlap: 120
+  top_k: 4
