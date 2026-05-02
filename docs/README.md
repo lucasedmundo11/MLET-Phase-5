@@ -28,6 +28,7 @@ docs/
 ├── BUSINESS_METRICS.md        # Etapa 1 — Métricas técnicas × negócio
 ├── MONITORING.md              # Etapa 3 — Guia de observabilidade
 ├── RETRAINING.md              # GAP 07 — Estratégia champion-challenger
+├── CICD.md                    # CI/CD — Workflows GitHub Actions detalhados
 └── PITCH.md                   # Demo Day — roteiro ≤ 10 min
 ```
 
