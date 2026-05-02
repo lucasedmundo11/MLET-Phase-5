@@ -31,6 +31,7 @@ def _agent_call(url: str, question: str, timeout: float = 120.0) -> dict[str, An
 
 def _build_rag_fn(url: str):
     """Adapter para o RAGAS: ``query → (answer, contexts)``."""
+
     def rag_fn(query: str) -> tuple[str, list[str]]:
         body = _agent_call(url, query)
         answer = str(body.get("answer", ""))

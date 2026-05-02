@@ -78,7 +78,10 @@ def test_judge_batch_aggregates_with_stub_llm() -> None:
     agg = judge_batch(samples, llm_call=stub_call, pass_threshold=4.0)
     assert agg.n == 2
     assert set(agg.per_criterion_mean) == {
-        "correctness", "faithfulness", "actionability", "risk_awareness"
+        "correctness",
+        "faithfulness",
+        "actionability",
+        "risk_awareness",
     }
     assert agg.overall_mean == pytest.approx((4 + 5 + 4 + 3) / 4)
     assert 0.0 <= agg.pass_rate <= 1.0
@@ -89,7 +92,7 @@ def test_judge_includes_business_criterion() -> None:
     from evaluation.llm_judge import CRITERIA
 
     business_criteria = {"actionability", "risk_awareness"}
-    assert business_criteria & set(CRITERIA), (
-        "LLM-as-judge precisa expor pelo menos 1 critério de negócio."
-    )
+    assert business_criteria & set(
+        CRITERIA
+    ), "LLM-as-judge precisa expor pelo menos 1 critério de negócio."
     assert len(CRITERIA) >= 3

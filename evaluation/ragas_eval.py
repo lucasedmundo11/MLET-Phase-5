@@ -45,12 +45,14 @@ def evaluate_rag_pipeline(
     results = []
     for item in golden_set:
         answer, contexts = rag_fn(item["query"])
-        results.append({
-            "question": item["query"],
-            "answer": answer,
-            "contexts": contexts,
-            "ground_truth": item["expected_answer"],
-        })
+        results.append(
+            {
+                "question": item["query"],
+                "answer": answer,
+                "contexts": contexts,
+                "ground_truth": item["expected_answer"],
+            }
+        )
 
     dataset = Dataset.from_list(results)
 

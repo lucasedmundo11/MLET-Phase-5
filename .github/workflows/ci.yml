@@ -45,7 +45,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint (ruff)
-        run: ruff check src/ tests/
+        run: ruff check src/ tests/ evaluation/ scripts/
 
       - name: Type check (mypy)
         run: mypy src/ --ignore-missing-imports

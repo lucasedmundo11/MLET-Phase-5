@@ -27,6 +27,9 @@ mlp:
 training:
   test_size: 0.2
   random_state: 42
+  owner: grupo-XX          # Identificador da equipe — editar antes do Demo Day
+  risk_level: medium       # low | medium | high | critical (GAP 05)
+  fairness_checked: false  # mudar para true após auditoria em EXPLAINABILITY_FAIRNESS.md
 
 mlflow:
   experiment_name: mlet-phase5-baseline

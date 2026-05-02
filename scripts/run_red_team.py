@@ -130,7 +130,8 @@ def main() -> None:
         for sc in SCENARIOS:
             try:
                 r = client.post(args.url, json={"question": sc.payload})
-                body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+                content_type = r.headers.get("content-type", "")
+                body = r.json() if content_type.startswith("application/json") else {}
                 http_status = r.status_code
             except Exception as exc:  # noqa: BLE001
                 logging.warning("%s falhou: %s", sc.id, exc)

@@ -69,7 +69,13 @@ def main() -> None:
         "n_questions": len(QUESTIONS),
         "n_failures": failures,
         "latency_mean_s": round(statistics.mean(latencies), 3) if latencies else None,
-        "latency_p95_s": round(statistics.quantiles(latencies, n=20)[-1], 3) if len(latencies) >= 20 else max(latencies) if latencies else None,
+        "latency_p95_s": (
+            round(statistics.quantiles(latencies, n=20)[-1], 3)
+            if len(latencies) >= 20
+            else max(latencies)
+            if latencies
+            else None
+        ),
         "tool_calls_mean": round(statistics.mean(tool_steps), 2) if tool_steps else None,
     }
     METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)

@@ -95,22 +95,23 @@ class MLPClassifierTorch:
         X_arr = self._scaler.fit_transform(np.asarray(X, dtype=np.float32))
         y_arr = np.asarray(y, dtype=np.float32).reshape(-1, 1)
 
-        self._model = _MLPModule(X_arr.shape[1], self.hidden_dim, self.dropout).to(self._device)
-        optimizer = torch.optim.Adam(self._model.parameters(), lr=self.learning_rate)
+        model = _MLPModule(X_arr.shape[1], self.hidden_dim, self.dropout).to(self._device)
+        self._model = model
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
         loss_fn = nn.BCEWithLogitsLoss()
 
         X_t = torch.from_numpy(X_arr).to(self._device)
         y_t = torch.from_numpy(y_arr).to(self._device)
         n = X_t.shape[0]
 
-        self._model.train()
+        model.train()
         for epoch in range(self.epochs):
             perm = torch.randperm(n)
             epoch_loss = 0.0
             for start in range(0, n, self.batch_size):
                 idx = perm[start : start + self.batch_size]
                 optimizer.zero_grad()
-                logits = self._model(X_t[idx])
+                logits = model(X_t[idx])
                 loss = loss_fn(logits, y_t[idx])
                 loss.backward()
                 optimizer.step()

@@ -32,7 +32,23 @@
       "Bash(docker volume *)",
       "Bash(docker-compose down *)",
       "Bash(curl -sf http://localhost:5001/health)",
-      "Bash(echo \"MLflow OK: $\\(curl -s http://localhost:5001/health\\)\")"
+      "Bash(echo \"MLflow OK: $\\(curl -s http://localhost:5001/health\\)\")",
+      "Bash(.venv/bin/pytest tests/ -x --cov=src --cov-report=term-missing --cov-fail-under=60 -q)",
+      "Bash(pytest --version)",
+      "Bash(.venv/bin/python -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(.venv/bin/python -m pytest tests/ -x --cov=src --cov-report=term-missing --cov-fail-under=60 -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_features.py tests/test_models.py tests/test_guardrails.py -q --no-header)",
+      "Bash(.venv/bin/python -m pytest tests/test_features.py tests/test_models.py -q --no-header --tb=short)",
+      "Bash(.venv/bin/python -m pytest tests/test_guardrails.py tests/test_monitoring.py tests/test_evaluation.py -q --no-header --tb=short)",
+      "Bash(.venv/bin/python -m pytest tests/test_guardrails.py -q --tb=short)",
+      "Bash(timeout 30 .venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -m pytest tests/test_agent.py tests/test_monitoring.py -q --tb=short --no-header)",
+      "Bash(.venv/bin/python -c \"from src.models.train import register_model_to_registry, train_and_log; print\\('train.py OK'\\)\")",
+      "Bash(.venv/bin/python -m mypy src/models/baseline.py scripts/run_retraining.py --ignore-missing-imports)",
+      "Bash(.venv/bin/python -m ruff check src/ tests/ evaluation/ scripts/)",
+      "Bash(.venv/bin/python -m ruff format --check src/ tests/ evaluation/ scripts/)",
+      "Bash(.venv/bin/python -m ruff format src/ tests/ evaluation/ scripts/)",
+      "Bash(.venv/bin/python -m mypy src/ --ignore-missing-imports)"
     ]
   }
 }

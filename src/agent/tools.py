@@ -236,7 +236,7 @@ def make_rag_search_tool(
         chunks = retriever(query, top_k)
         if not chunks:
             return "Nenhum trecho relevante encontrado nos relatórios indexados."
-        return "\n---\n".join(f"[trecho {i+1}] {c}" for i, c in enumerate(chunks))
+        return "\n---\n".join(f"[trecho {i + 1}] {c}" for i, c in enumerate(chunks))
 
     return search_reports
 
@@ -246,7 +246,7 @@ def make_rag_search_tool(
 
 def build_default_tools(retriever: Callable[[str, int], list[str]] | None = None) -> list:
     """Constrói a lista padrão de tools para o agente. Importa LangChain só aqui."""
-    from langchain.tools import Tool
+    from langchain.tools import Tool  # type: ignore[attr-defined]
 
     tools = [
         Tool(

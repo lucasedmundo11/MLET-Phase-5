@@ -28,9 +28,7 @@ class InputGuardrail:
 
     def __init__(self, allowed_topics: list[str] | None = None):
         self.allowed_topics = allowed_topics or []
-        self._compiled_patterns = [
-            re.compile(p, re.IGNORECASE) for p in self.INJECTION_PATTERNS
-        ]
+        self._compiled_patterns = [re.compile(p, re.IGNORECASE) for p in self.INJECTION_PATTERNS]
 
     def validate(self, user_input: str) -> tuple[bool, str]:
         """Valida input do usuário.
@@ -84,7 +82,7 @@ class OutputGuardrail:
             logger.warning("PII detectado no output: %d entidades", len(results))
             anonymized = self.anonymizer.anonymize(
                 text=llm_output,
-                analyzer_results=results,
+                analyzer_results=results,  # type: ignore[arg-type]
             )
             return anonymized.text
 

@@ -57,9 +57,7 @@ class PIIDetector:
         """Devolve a lista de entidades PII encontradas em ``text``."""
         if not text:
             return []
-        results = self.analyzer.analyze(
-            text=text, language=self.language, entities=self.entities
-        )
+        results = self.analyzer.analyze(text=text, language=self.language, entities=self.entities)
         findings = [
             PIIFinding(
                 entity_type=r.entity_type,
@@ -95,13 +93,11 @@ class PIIDetector:
         """Anonimiza PII detectado em ``text``."""
         if not text:
             return text
-        results = self.analyzer.analyze(
-            text=text, language=self.language, entities=self.entities
-        )
+        results = self.analyzer.analyze(text=text, language=self.language, entities=self.entities)
         if not results:
             text_out = text
         else:
-            text_out = self.anonymizer.anonymize(text=text, analyzer_results=results).text
+            text_out = self.anonymizer.anonymize(text=text, analyzer_results=results).text  # type: ignore[arg-type]
 
         # Pós-processamento: máscara dos padrões regex que escaparam ao Presidio.
         text_out = CPF_REGEX.sub("<BR_CPF>", text_out)

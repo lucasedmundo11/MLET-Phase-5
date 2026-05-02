@@ -172,9 +172,7 @@ def judge_batch(
             n=0, per_criterion_mean={c: 0.0 for c in CRITERIA}, overall_mean=0.0, pass_rate=0.0
         )
 
-    per_criterion_mean = {
-        c: sum(r.scores[c] for r in results) / len(results) for c in CRITERIA
-    }
+    per_criterion_mean = {c: sum(r.scores[c] for r in results) / len(results) for c in CRITERIA}
     overall_mean = sum(r.mean() for r in results) / len(results)
     pass_rate = sum(1 for r in results if r.mean() >= pass_threshold) / len(results)
 

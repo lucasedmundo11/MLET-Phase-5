@@ -52,11 +52,11 @@ test:
 	pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=60
 
 lint:
-	ruff check src/ tests/ evaluation/
+	ruff check src/ tests/ evaluation/ scripts/
 	mypy src/ --ignore-missing-imports
 
 format:
-	ruff format src/ tests/ evaluation/
+	ruff format src/ tests/ evaluation/ scripts/
 
 dvc-repro:
 	dvc repro

@@ -24,7 +24,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import mlflow
@@ -122,6 +122,7 @@ def main() -> int:
     df = _load_dataset()
     logger.info("Dataset carregado: %d linhas, %d colunas", *df.shape)
 
+    model_class: type[MLPClassifierTorch] | type[LogisticRegressionBaseline]
     if args.challenger_class == "mlp":
         model_class = MLPClassifierTorch
         model_params = mlp_cfg or {
@@ -170,7 +171,7 @@ def main() -> int:
             decision = f"{decision}_FAILED"
 
     report = {
-        "timestamp": datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "timestamp": datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "trigger": args.reason,
         "model_name": args.model_name,
         "champion": champion,
@@ -192,7 +193,7 @@ def main() -> int:
     }
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(tz=UTC).strftime("%Y%m%dT%H%M%SZ")
     out_path = REPORT_DIR / f"retraining_{ts}.json"
     out_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     logger.info("Decisão: %s (Δauc=%s) — relatório em %s", decision, delta_auc, out_path)

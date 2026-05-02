@@ -122,9 +122,7 @@ def detect_drift(
         current_data.columns
     )
     for col in numeric_cols:
-        psi[col] = round(
-            population_stability_index(reference_data[col], current_data[col]), 4
-        )
+        psi[col] = round(population_stability_index(reference_data[col], current_data[col]), 4)
 
     warn, crit = _load_thresholds()
     max_psi = max(psi.values()) if psi else 0.0

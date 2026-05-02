@@ -88,7 +88,7 @@ def train_and_log(
         # Tags padronizadas (obrigatório)
         mlflow.set_tag("model_type", "classification")
         mlflow.set_tag("framework", model_class.__module__.split(".")[0])
-        mlflow.set_tag("owner", "grupo-XX")
+        mlflow.set_tag("owner", os.environ.get("TEAM_OWNER", "grupo-XX"))
         mlflow.set_tag("phase", "datathon-fase05")
 
         # Treino
@@ -166,21 +166,22 @@ def register_model_to_registry(
     model_name: str,
     risk_level: str = "medium",
     fairness_checked: bool = False,
+    owner: str | None = None,
 ) -> str:
     """Aplica o schema completo do GAP 05 e registra o modelo no MLflow Registry.
 
     Schema mínimo obrigatório (replicado do guia, p. 6)::
 
         required_tags = {
-            "model_name": str,
-            "model_version": str,
-            "model_type": str,
-            "training_data_version": str,
-            "metrics": dict,
-            "owner": str,
-            "risk_level": str,
-            "fairness_checked": bool,
-            "git_sha": str,
+            "model_name": str,          # Nome do modelo
+            "model_version": str,       # Versão semântica
+            "model_type": str,          # classification | regression | generation
+            "training_data_version": str,  # Hash ou versão DVC
+            "metrics": dict,            # {"auc": 0.95, "f1": 0.88}
+            "owner": str,               # Email do responsável
+            "risk_level": str,          # low | medium | high | critical
+            "fairness_checked": bool,   # Auditoria de viés feita?
+            "git_sha": str,             # Commit do código
         }
 
     Args:
@@ -189,6 +190,7 @@ def register_model_to_registry(
         risk_level: Classificação de risco (low / medium / high / critical).
         fairness_checked: Indica se a auditoria de fairness foi realizada
             (ver ``docs/EXPLAINABILITY_FAIRNESS.md``).
+        owner: Identificador da equipe; usa TEAM_OWNER env var se None.
 
     Returns:
         Versão do modelo registrada no Model Registry.
@@ -197,11 +199,18 @@ def register_model_to_registry(
     run = client.get_run(run_id)
     metrics = {k: float(v) for k, v in run.data.metrics.items()}
 
+    # Herda model_type do run existente (setado em train_and_log)
+    existing_model_type = run.data.tags.get("model_type", "classification")
+    resolved_owner = owner or os.environ.get("TEAM_OWNER", run.data.tags.get("owner", "grupo-XX"))
+
     governance_tags = {
+        # Schema completo GAP 05 — todos os 9 campos obrigatórios
         "model_name": model_name,
         "model_version": MODEL_VERSION_SEMVER,
+        "model_type": existing_model_type,
         "training_data_version": _training_data_version(),
-        "metrics_json": json.dumps(metrics, ensure_ascii=False),
+        "metrics": json.dumps(metrics, ensure_ascii=False),
+        "owner": resolved_owner,
         "risk_level": risk_level,
         "fairness_checked": str(fairness_checked).lower(),
         "git_sha": _git_sha(),

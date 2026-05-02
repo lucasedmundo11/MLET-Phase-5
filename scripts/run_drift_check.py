@@ -48,9 +48,12 @@ def main() -> None:
     from src.monitoring.drift import detect_drift
 
     result = detect_drift(reference, current, save_html=not args.no_html)
-    logging.info("Drift status=%s share=%.3f psi_max=%.3f",
-                 result.status, result.share_of_drifted_columns,
-                 max(result.psi_per_feature.values()) if result.psi_per_feature else 0.0)
+    logging.info(
+        "Drift status=%s share=%.3f psi_max=%.3f",
+        result.status,
+        result.share_of_drifted_columns,
+        max(result.psi_per_feature.values()) if result.psi_per_feature else 0.0,
+    )
 
     try:
         from src.monitoring.metrics import drift_psi_max, drift_share_of_drifted_columns
