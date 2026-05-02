@@ -1,0 +1,28 @@
+model:
+  name: baseline
+  type: logistic_regression
+  hyperparameters:
+    C: 1.0
+    max_iter: 1000
+    solver: lbfgs
+
+mlp:
+  hidden_dim: 128
+  dropout: 0.3
+  learning_rate: 0.001
+  epochs: 50
+  batch_size: 64
+
+training:
+  test_size: 0.2
+  random_state: 42
+  experiment_name: mlet-phase5
+  required_tags:
+    - model_version
+    - dataset_version
+    - author
+    - environment
+
+mlflow:
+  tracking_uri: http://mlflow:5000
+  artifact_location: s3://mlet-phase5-artifacts/mlflow

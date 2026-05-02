@@ -1,0 +1,24 @@
+drift:
+  psi_threshold: 0.2
+  check_interval_hours: 24
+  min_samples: 100
+  features_to_monitor: []  # populated at runtime from feature schema
+
+alerts:
+  psi_warning: 0.1
+  psi_critical: 0.2
+  webhook_url: ${ALERT_WEBHOOK_URL}
+
+ragas:
+  faithfulness_threshold: 0.7
+  answer_relevancy_threshold: 0.7
+  context_recall_threshold: 0.6
+  context_precision_threshold: 0.6
+
+prometheus:
+  port: 8001
+  scrape_interval: 15s
+
+evidently:
+  report_path: data/processed/drift_reports/
+  save_html: true
