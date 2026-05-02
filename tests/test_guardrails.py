@@ -65,13 +65,15 @@ class TestInputGuardrail:
 
 def _presidio_available() -> bool:
     try:
-        import spacy  # noqa: F401
+        import spacy
         from presidio_analyzer import AnalyzerEngine  # noqa: F401
+        from presidio_anonymizer import AnonymizerEngine  # noqa: F401
 
-        # Precisa do modelo PT carregável.
-        AnalyzerEngine()
+        # Verifica se o modelo PT já está baixado — sem acionar download.
+        # spaCy lança OSError (não SystemExit) quando o modelo não existe localmente.
+        spacy.load("pt_core_news_sm")
         return True
-    except Exception:  # noqa: BLE001
+    except (ImportError, OSError):
         return False
 
 
