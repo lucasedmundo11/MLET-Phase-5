@@ -1,5 +1,6 @@
-.PHONY: install install-serve install-eval install-monitor data train test lint format \
-        dvc-repro rag-index serve benchmark eval drift docker-up docker-down clean
+.PHONY: install install-serve install-eval install-security data train test lint format \
+        dvc-repro rag-index serve benchmark eval drift red-team \
+        docker-up docker-down clean
 
 install:
 	uv pip install -e ".[dev]"
@@ -9,6 +10,10 @@ install-serve:
 
 install-eval:
 	uv pip install -e ".[dev,serve,eval,monitor]"
+
+install-security:
+	uv pip install -e ".[dev,serve,eval,monitor,security]"
+	python -m spacy download pt_core_news_sm
 
 # ---------- Etapa 1 — dados + baseline ----------
 data:
@@ -33,6 +38,10 @@ eval:
 
 drift:
 	python -m scripts.run_drift_check --window-days 30
+
+# ---------- Etapa 4 — segurança + governança ----------
+red-team:
+	python -m scripts.run_red_team --url http://localhost:8000/agent/chat
 
 # ---------- qualidade ----------
 test:

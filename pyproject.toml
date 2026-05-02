@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mlet-phase5"
-version = "0.3.0"
-description = "MLET Phase 5 Datathon — LLMs e Agentes (Fases 1–3)"
+version = "0.4.0"
+description = "MLET Phase 5 Datathon — LLMs e Agentes (Fases 1–4)"
 requires-python = ">=3.11"
 dependencies = [
     # Núcleo de dados/ML (Fase 1)
@@ -60,6 +60,15 @@ monitor = [
     "prometheus-client>=0.20.0",
     # Telemetria do agente / LLM (qualidade de resposta)
     "langfuse>=2.0.0",
+]
+security = [
+    # Detecção e anonimização de PII (replicado do guia — Etapa 4, p. 17-19)
+    # Inclui reconhecedores BR_CPF / BR_CNPJ nativos do Presidio.
+    "presidio-analyzer>=2.2.354",
+    "presidio-anonymizer>=2.2.354",
+    # Backbone de NER usado pelo Presidio (modelo PT precisa ser baixado:
+    # `python -m spacy download pt_core_news_sm`).
+    "spacy>=3.7.0",
 ]
 dev = [
     "pytest>=8.2.0",

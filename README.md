@@ -2,7 +2,7 @@
 
 Repositório do Datathon — Fase 5. Entregável final: agente conversacional sobre
 o universo PETR4, VALE3, ITUB4, BBDC4, WEGE3 (B3). Esta release cobre as
-**Etapas 1, 2 e 3** do guia oficial.
+**Etapas 1, 2, 3 e 4** do guia oficial.
 
 ## Status do checklist
 
@@ -27,6 +27,14 @@ o universo PETR4, VALE3, ITUB4, BBDC4, WEGE3 (B3). Esta release cobre as
 - ✅ Telemetria + dashboard end-to-end (Prometheus + Grafana provisionados) — [src/monitoring/metrics.py](src/monitoring/metrics.py), [configs/grafana/dashboards/agent_dashboard.json](configs/grafana/dashboards/agent_dashboard.json)
 - ✅ Drift detection (Evidently + PSI) — [src/monitoring/drift.py](src/monitoring/drift.py), [docs/MONITORING.md](docs/MONITORING.md)
 
+### Etapa 4 — Segurança + Governança
+- ✅ OWASP LLM Top 10 (2025) com 7 ameaças mapeadas — [docs/OWASP_MAPPING.md](docs/OWASP_MAPPING.md)
+- ✅ Guardrails de input + output funcionais (replicado do guia) — [src/security/guardrails.py](src/security/guardrails.py)
+- ✅ 7 cenários adversariais documentados e automatizados — [docs/RED_TEAM_REPORT.md](docs/RED_TEAM_REPORT.md), [scripts/run_red_team.py](scripts/run_red_team.py)
+- ✅ Plano LGPD aplicado ao caso real — [docs/LGPD_PLAN.md](docs/LGPD_PLAN.md)
+- ✅ Explicabilidade (ReAct trace + LogReg coefs) e fairness (paridade por ticker) — [docs/EXPLAINABILITY_FAIRNESS.md](docs/EXPLAINABILITY_FAIRNESS.md)
+- ✅ System Card + Model Card completos — [docs/SYSTEM_CARD.md](docs/SYSTEM_CARD.md), [docs/MODEL_CARD.md](docs/MODEL_CARD.md)
+
 ## Pré-requisitos
 
 Python 3.11+, [uv](https://github.com/astral-sh/uv), Docker.
@@ -36,8 +44,9 @@ Python 3.11+, [uv](https://github.com/astral-sh/uv), Docker.
 ```bash
 git clone <repo-url> && cd MLET-Phase-5
 uv venv .venv
-.venv\Scripts\activate                       # Windows PowerShell
-uv pip install -e ".[dev,serve,eval,monitor]"  # Etapas 1+2+3
+.venv\Scripts\activate                                # Windows PowerShell
+uv pip install -e ".[dev,serve,eval,monitor,security]"  # Etapas 1+2+3+4
+python -m spacy download pt_core_news_sm              # modelo PT do Presidio
 copy .env.example .env
 pre-commit install
 ```
@@ -77,6 +86,19 @@ make eval         # → metrics/evaluation.json + gauges em /metrics
 
 # 3. Drift detection
 make drift        # → metrics/drift.json + report HTML em data/processed/drift_reports/
+```
+
+## Reprodução — Etapa 4
+
+```bash
+# 1. Subir o sistema completo (API + guardrails + observabilidade)
+make docker-up
+
+# 2. Rodar os 7 cenários adversariais contra a API
+make red-team     # → metrics/red_team.json (sai 1 se algum cenário vazar)
+
+# 3. Rodar testes de guardrails (offline; pula PII se Presidio/spaCy ausente)
+pytest tests/test_guardrails.py -v
 ```
 
 ## Estrutura

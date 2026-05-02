@@ -1,10 +1,11 @@
-"""FastAPI servindo o LLM quantizado e o agente ReAct — Etapas 2 e 3.
+"""FastAPI servindo o LLM quantizado e o agente ReAct — Etapas 2, 3 e 4.
 
 Endpoints:
     GET  /health         — liveness/readiness.
     GET  /metrics        — exposição Prometheus (Etapa 3).
     POST /llm/complete   — completion direta no LLM local quantizado (GGUF Q4_K_M).
-    POST /agent/chat     — pergunta → agente ReAct → ferramentas → resposta.
+    POST /agent/chat     — pergunta → input guardrail → agente ReAct →
+                           output guardrail (PII redacted) → resposta.
 
 O LLM é carregado via ``llama-cpp-python`` a partir de um arquivo GGUF
 quantizado (variável de ambiente ``LLM_MODEL_PATH``), satisfazendo o critério
@@ -13,8 +14,10 @@ de aceite "LLM servido via API com quantização aplicada".
 Instrumentação (Etapa 3):
 * Middleware mede latência e contagem por ``endpoint`` e ``status``.
 * Tokens do LLM e iterações do agente vão para Prometheus.
-* (Opcional) Langfuse: se ``LANGFUSE_HOST`` estiver definido, telemetria
-  qualitativa do LLM é enviada para o servidor configurado.
+
+Segurança (Etapa 4):
+* ``InputGuardrail`` bloqueia prompt injection / context stuffing antes do LLM.
+* ``OutputGuardrail`` anonimiza PII na resposta antes de devolver ao usuário.
 """
 
 from __future__ import annotations
@@ -63,6 +66,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     intermediate_steps: int
+    guardrail_action: str = "none"  # none | blocked | sanitized
 
 
 def _load_config() -> dict[str, Any]:
@@ -110,6 +114,20 @@ def get_agent():
         model_name=cfg.get("model_name", "qwen2.5-3b-instruct"),
         temperature=cfg.get("temperature", 0.0),
     )
+
+
+@lru_cache(maxsize=1)
+def get_input_guardrail():
+    from src.security.guardrails import InputGuardrail
+
+    return InputGuardrail()
+
+
+@lru_cache(maxsize=1)
+def get_output_guardrail():
+    from src.security.guardrails import OutputGuardrail
+
+    return OutputGuardrail(language="pt")
 
 
 app = FastAPI(
@@ -170,6 +188,17 @@ def llm_complete(req: CompletionRequest) -> CompletionResponse:
 
 @app.post("/agent/chat", response_model=ChatResponse)
 def agent_chat(req: ChatRequest) -> ChatResponse:
+    # Etapa 4 — input guardrail (prompt injection / context stuffing).
+    try:
+        input_guard = get_input_guardrail()
+        ok, reason = input_guard.validate(req.question)
+        if not ok:
+            agent_question_failures_total.labels(reason="input_guardrail").inc()
+            return ChatResponse(answer=reason, intermediate_steps=0, guardrail_action="blocked")
+    except ImportError:
+        # Presidio/spaCy ausente — degrada com aviso, não falha hard.
+        logger.warning("InputGuardrail indisponível; seguindo sem validação prévia.")
+
     try:
         agent = get_agent()
     except (RuntimeError, ImportError) as exc:
@@ -184,4 +213,20 @@ def agent_chat(req: ChatRequest) -> ChatResponse:
 
     steps = len(result.get("intermediate_steps", []) or [])
     agent_iterations.observe(steps)
-    return ChatResponse(answer=str(result.get("output", "")), intermediate_steps=steps)
+
+    # Etapa 4 — output guardrail (PII redacted).
+    raw_answer = str(result.get("output", ""))
+    guardrail_action = "none"
+    try:
+        sanitized = get_output_guardrail().sanitize(raw_answer)
+        if sanitized != raw_answer:
+            guardrail_action = "sanitized"
+        answer = sanitized
+    except ImportError:
+        answer = raw_answer
+
+    return ChatResponse(
+        answer=answer,
+        intermediate_steps=steps,
+        guardrail_action=guardrail_action,
+    )
