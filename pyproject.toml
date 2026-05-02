@@ -81,6 +81,9 @@ dev = [
     "ipykernel>=6.29.0",
     "nbconvert>=7.16.0",
     "httpx>=0.27.0",
+    # Type stubs para libs sem py.typed (caso contrário o mypy emite
+    # `[import-untyped]`, não suprimido por --ignore-missing-imports).
+    "types-PyYAML>=6.0.12",
 ]
 
 [tool.hatch.build.targets.wheel]
