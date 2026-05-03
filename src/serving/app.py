@@ -61,7 +61,10 @@ class CompletionResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    question: str = Field(..., min_length=1, max_length=2048)
+    # Upper bound is deliberately higher than InputGuardrail's 4096-char limit
+    # so the guardrail (not FastAPI schema validation) handles context-stuffing
+    # and returns a proper guardrail_action="blocked" response.
+    question: str = Field(..., min_length=1, max_length=10_000)
 
 
 class ChatResponse(BaseModel):
