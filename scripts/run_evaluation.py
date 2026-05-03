@@ -64,11 +64,13 @@ def main() -> None:
 
     summary: dict[str, Any] = {"golden_path": args.golden}
 
+    answer_records: list[dict] = []
+
     if not args.skip_ragas:
         from evaluation.ragas_eval import evaluate_rag_pipeline
 
         rag_fn = _build_rag_fn(args.url)
-        ragas_scores = evaluate_rag_pipeline(args.golden, rag_fn)
+        ragas_scores, answer_records = evaluate_rag_pipeline(args.golden, rag_fn)
         summary["ragas"] = {k: float(v) for k, v in ragas_scores.items()}
         logging.info("RAGAS: %s", summary["ragas"])
     else:
@@ -77,26 +79,29 @@ def main() -> None:
     if not args.skip_judge:
         from evaluation.llm_judge import judge_batch
 
-        with open(args.golden, encoding="utf-8") as f:
-            golden = json.load(f)
+        # Reuse answers already collected during RAGAS phase — avoids a second
+        # round of agent API calls that could overwhelm or crash the server.
+        if not answer_records:
+            with open(args.golden, encoding="utf-8") as f:
+                golden = json.load(f)
+            for item in golden:
+                try:
+                    resp = _agent_call(args.url, item["query"])
+                    answer = str(resp.get("answer", ""))
+                except Exception as exc:  # noqa: BLE001
+                    logging.warning("Falha em '%s': %s", item.get("id"), exc)
+                    answer = ""
+                answer_records.append(
+                    {
+                        "id": item.get("id"),
+                        "query": item["query"],
+                        "answer": answer,
+                        "ground_truth": item.get("expected_answer", ""),
+                        "tool_observations": "",
+                    }
+                )
 
-        samples = []
-        for item in golden:
-            try:
-                resp = _agent_call(args.url, item["query"])
-                answer = str(resp.get("answer", ""))
-            except Exception as exc:  # noqa: BLE001
-                logging.warning("Falha em '%s': %s", item.get("id"), exc)
-                answer = ""
-            samples.append(
-                {
-                    "id": item.get("id"),
-                    "query": item["query"],
-                    "answer": answer,
-                    "ground_truth": item.get("expected_answer", ""),
-                }
-            )
-        agg = judge_batch(samples)
+        agg = judge_batch(answer_records)
         summary["judge"] = agg.to_dict()
         logging.info("Judge: %s", summary["judge"])
         _push_to_prometheus(ragas_scores, agg)

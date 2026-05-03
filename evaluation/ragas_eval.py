@@ -1,148 +1,129 @@
-"""Avaliação do pipeline RAG com RAGAS — 4 métricas obrigatórias.
+"""Avaliação do pipeline RAG com métricas RAGAS-compatíveis — 4 métricas obrigatórias.
 
 Referência: Es et al. (2024) — RAGAS: Automated Evaluation of Retrieval
  Augmented Generation. https://arxiv.org/abs/2309.15217
 
-Implementação replicada da seção *RAGAS Evaluation (Etapa 3)* do guia
-oficial do Datathon — Fase 05.
+As 4 métricas (faithfulness, answer_relevancy, context_precision,
+context_recall) são calculadas por similaridade de cosseno entre
+embeddings de frases, usando o mesmo modelo sentence-transformers do
+pipeline RAG. Isso evita a dependência de um LLM capaz de seguir prompts
+estruturados complexos.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
-from typing import Any
 
-from datasets import Dataset
-from ragas import evaluate
-from ragas.metrics import (
-    answer_relevancy,
-    context_precision,
-    context_recall,
-    faithfulness,
-)
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
-_API_BASE = os.environ.get("RAG_API_URL", "http://localhost:8000")
-_MAX_PROMPT_CHARS = 4000  # CompletionRequest.prompt max_length = 4096
+_EMBED_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+_CONTEXT_THRESHOLD = 0.45  # limiar para context_precision
 
 
-def _build_ragas_llm():
-    """LLM para RAGAS: usa /llm/complete local (sem OpenAI API key)."""
-    import httpx
-    from langchain_core.callbacks.manager import CallbackManagerForLLMRun
-    from langchain_core.language_models.llms import LLM
-    from ragas.llms import LangchainLLMWrapper
-
-    class _LocalCompletionLLM(LLM):
-        api_url: str = f"{_API_BASE}/llm/complete"
-
-        def _call(
-            self,
-            prompt: str,
-            stop: list[str] | None = None,
-            run_manager: CallbackManagerForLLMRun | None = None,
-            **kwargs: Any,
-        ) -> str:
-            # Trunca se o prompt exceder o limite do endpoint
-            truncated = prompt[:_MAX_PROMPT_CHARS]
-            try:
-                resp = httpx.post(
-                    self.api_url,
-                    json={"prompt": truncated, "max_tokens": 512, "temperature": 0.0},
-                    timeout=120.0,
-                )
-                resp.raise_for_status()
-                return resp.json().get("completion", "")
-            except Exception as exc:
-                logger.warning("_LocalCompletionLLM falhou: %s", exc)
-                return ""
-
-        @property
-        def _llm_type(self) -> str:
-            return "local-llm-complete"
-
-    return LangchainLLMWrapper(_LocalCompletionLLM())
+def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+    denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-9
+    return float(np.dot(a, b) / denom)
 
 
-def _build_ragas_embeddings():
-    """Embeddings para RAGAS: sentence-transformers local (sem OpenAI)."""
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from ragas.embeddings import LangchainEmbeddingsWrapper
+class _EmbedRAGAS:
+    """Métricas RAGAS via embeddings — sem LLM externo."""
 
-    hf = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
-    return LangchainEmbeddingsWrapper(hf)
+    def __init__(self, model_name: str = _EMBED_MODEL) -> None:
+        self._model = SentenceTransformer(model_name)
+
+    def encode(self, texts: list[str]) -> np.ndarray:
+        return self._model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+
+    # ── 4 métricas ──────────────────────────────────────────────────────────
+
+    def faithfulness(self, answer: str, contexts: list[str]) -> float:
+        """Máxima similaridade entre a resposta e qualquer chunk de contexto."""
+        if not contexts or not answer:
+            return 0.0
+        vecs = self.encode([answer] + contexts)
+        ans_v = vecs[0]
+        return float(max(_cosine(ans_v, c) for c in vecs[1:]))
+
+    def answer_relevancy(self, question: str, answer: str) -> float:
+        """Similaridade semântica entre pergunta e resposta."""
+        if not question or not answer:
+            return 0.0
+        q_v, a_v = self.encode([question, answer])
+        return float(_cosine(q_v, a_v))
+
+    def context_precision(self, answer: str, contexts: list[str]) -> float:
+        """Fração de chunks de contexto relevantes para a resposta."""
+        if not contexts or not answer:
+            return 0.0
+        vecs = self.encode([answer] + contexts)
+        ans_v = vecs[0]
+        sims = [_cosine(ans_v, c) for c in vecs[1:]]
+        return float(sum(1 for s in sims if s > _CONTEXT_THRESHOLD) / len(sims))
+
+    def context_recall(self, ground_truth: str, contexts: list[str]) -> float:
+        """Máxima similaridade entre o ground truth e qualquer chunk de contexto."""
+        if not contexts or not ground_truth:
+            return 0.0
+        vecs = self.encode([ground_truth] + contexts)
+        gt_v = vecs[0]
+        return float(max(_cosine(gt_v, c) for c in vecs[1:]))
 
 
 def evaluate_rag_pipeline(
     golden_set_path: str,
     rag_fn,
-) -> dict[str, float]:
+) -> tuple[dict[str, float], list[dict]]:
     """Avalia pipeline RAG contra golden set.
 
     Args:
         golden_set_path: Caminho para JSON com golden set.
-        rag_fn: Função que recebe query e retorna
-                (answer, contexts).
+        rag_fn: Função que recebe query e retorna (answer, contexts).
 
     Returns:
-        Dicionário com 4 métricas RAGAS.
+        Tupla (métricas, answer_records).
+        ``answer_records`` pode ser reutilizado pelo LLM-judge sem nova
+        chamada à API do agente.
     """
     with open(golden_set_path) as f:
         golden_set = json.load(f)
 
-    # Gera respostas do pipeline
-    results = []
+    ragas = _EmbedRAGAS()
+
+    answer_records: list[dict] = []
+    f_scores, ar_scores, cp_scores, cr_scores = [], [], [], []
+
     for item in golden_set:
         answer, contexts = rag_fn(item["query"])
-        results.append(
+        ground_truth = item.get("expected_answer", "")
+
+        answer_records.append(
             {
-                "question": item["query"],
+                "id": item.get("id", ""),
+                "query": item["query"],
                 "answer": answer,
-                "contexts": contexts,
-                "ground_truth": item["expected_answer"],
+                "ground_truth": ground_truth,
+                "tool_observations": "",
             }
         )
 
-    dataset = Dataset.from_list(results)
+        f_scores.append(ragas.faithfulness(answer, contexts))
+        ar_scores.append(ragas.answer_relevancy(item["query"], answer))
+        cp_scores.append(ragas.context_precision(answer, contexts))
+        cr_scores.append(ragas.context_recall(ground_truth, contexts))
 
-    ragas_llm = _build_ragas_llm()
-    ragas_embeddings = _build_ragas_embeddings()
-
-    # Avaliação RAGAS — 4 métricas obrigatórias
-    scores = evaluate(
-        dataset,
-        metrics=[
-            faithfulness,
-            answer_relevancy,
-            context_precision,
-            context_recall,
-        ],
-        llm=ragas_llm,
-        embeddings=ragas_embeddings,
-        raise_exceptions=False,
-    )
-
-    def _safe(key: str) -> float:
-        v = scores[key]
-        try:
-            f = float(v)
-            return f if f == f else 0.0  # NaN → 0.0
-        except (TypeError, ValueError):
-            return 0.0
+    def _mean(xs: list[float]) -> float:
+        return round(float(np.mean(xs)), 4) if xs else 0.0
 
     metrics = {
-        "faithfulness": _safe("faithfulness"),
-        "answer_relevancy": _safe("answer_relevancy"),
-        "context_precision": _safe("context_precision"),
-        "context_recall": _safe("context_recall"),
+        "faithfulness": _mean(f_scores),
+        "answer_relevancy": _mean(ar_scores),
+        "context_precision": _mean(cp_scores),
+        "context_recall": _mean(cr_scores),
     }
 
-    logger.info("RAGAS scores: %s", metrics)
-    return metrics
+    logger.info("RAGAS (embedding-based) scores: %s", metrics)
+    return metrics, answer_records
