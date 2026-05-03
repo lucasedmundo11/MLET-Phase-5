@@ -52,6 +52,29 @@ def _push_to_prometheus(ragas_scores: dict[str, float], judge_agg) -> None:
         judge_metric.labels(criterion=k).set(float(v))
 
 
+def _check_server(chat_url: str) -> None:
+    """Verifica que o servidor FastAPI está no ar antes de iniciar a avaliação."""
+    import sys
+    from urllib.parse import urlparse
+
+    base = urlparse(chat_url)
+    health_url = f"{base.scheme}://{base.netloc}/health"
+    try:
+        with httpx.Client(timeout=5.0) as client:
+            r = client.get(health_url)
+            r.raise_for_status()
+    except Exception:
+        print(
+            f"\n❌  Servidor não encontrado em {base.netloc}\n"
+            f"    Inicie o servidor antes de rodar a avaliação:\n\n"
+            f"        make serve          # desenvolvimento local\n"
+            f"        make docker-up      # stack completa\n\n"
+            f"    Depois execute novamente:  make eval\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:8000/agent/chat")
@@ -61,6 +84,8 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+    _check_server(args.url)
 
     summary: dict[str, Any] = {"golden_path": args.golden}
 
