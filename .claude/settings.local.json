@@ -52,7 +52,12 @@
       "Bash(.venv/bin/python -c ' *)",
       "Bash(.venv/bin/python -m pytest tests/test_guardrails.py -v --tb=short --no-header)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python -c \"import ragas; print\\(ragas.__version__\\)\")",
+      "Bash(.venv/bin/python -c \"import ragas; print\\(ragas.__version__\\)\")",
+      "Bash(.venv/bin/python -c \"from sentence_transformers import SentenceTransformer; print\\('sentence_transformers OK'\\)\")",
+      "Bash(.venv/bin/python -c \"import numpy; print\\('numpy', numpy.__version__\\)\")",
+      "Bash(.venv/bin/python -m scripts.run_evaluation --url http://localhost:9999/agent/chat)"
     ]
   }
 }
