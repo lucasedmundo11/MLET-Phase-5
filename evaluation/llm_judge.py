@@ -91,19 +91,35 @@ class JudgeAggregate:
 
 
 def _default_llm_call(prompt: str) -> str:
-    """Cliente LLM padrão — mesma rota OpenAI-compatible usada pelo agente."""
-    from openai import OpenAI
+    """Cliente LLM padrão — usa /llm/complete local ou OPENAI_API_BASE se definido."""
+    import httpx
 
-    client = OpenAI(
-        api_key=os.environ.get("OPENAI_API_KEY", "sk-local-quantized"),
-        base_url=os.environ.get("OPENAI_API_BASE"),
+    api_base = os.environ.get("OPENAI_API_BASE")
+
+    if api_base:
+        # OpenAI-compatible endpoint externo (ex.: llama-cpp server, vLLM)
+        from openai import OpenAI
+
+        client = OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY", "sk-local"),
+            base_url=api_base,
+        )
+        resp = client.chat.completions.create(
+            model=os.environ.get("JUDGE_MODEL", "qwen2.5-3b-instruct"),
+            temperature=0.0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return resp.choices[0].message.content or ""
+
+    # Fallback: /llm/complete endpoint do FastAPI local
+    local_url = os.environ.get("RAG_API_URL", "http://localhost:8000") + "/llm/complete"
+    resp = httpx.post(
+        local_url,
+        json={"prompt": prompt[:4000], "max_tokens": 512, "temperature": 0.0},
+        timeout=120.0,
     )
-    resp = client.chat.completions.create(
-        model=os.environ.get("JUDGE_MODEL", "qwen2.5-3b-instruct"),
-        temperature=0.0,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return resp.choices[0].message.content or ""
+    resp.raise_for_status()
+    return resp.json().get("completion", "")
 
 
 def _parse_judge_output(raw: str) -> tuple[dict[str, int], str]:
