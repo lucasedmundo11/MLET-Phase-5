@@ -33,9 +33,14 @@ def _build_rag_fn(url: str):
     """Adapter para o RAGAS: ``query → (answer, contexts)``."""
 
     def rag_fn(query: str) -> tuple[str, list[str]]:
-        body = _agent_call(url, query)
-        answer = str(body.get("answer", ""))
-        contexts = body.get("contexts", []) or [body.get("answer", "")]
+        try:
+            body = _agent_call(url, query)
+            answer = str(body.get("answer", ""))
+            contexts = body.get("contexts", []) or [answer]
+        except Exception as exc:  # noqa: BLE001
+            logging.warning("Falha na query '%s...': %s", query[:60], exc)
+            answer = ""
+            contexts = []
         return answer, contexts
 
     return rag_fn
