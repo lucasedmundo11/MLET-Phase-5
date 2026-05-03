@@ -63,6 +63,18 @@ class OutputGuardrail:
         self.anonymizer = AnonymizerEngine()
         self.language = language
 
+    # Entities supported by Presidio's default English NLP engine.
+    # BR_CPF and PHONE_NUMBER require custom recognizers; EMAIL_ADDRESS and
+    # PERSON work out of the box with the en_core_web_lg/sm spaCy model.
+    _SUPPORTED_ENTITIES = ["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER"]
+
+    # Regex fallback patterns for entities not covered by the default engine.
+    _REGEX_PATTERNS: list[tuple[re.Pattern, str]] = [
+        (re.compile(r"\d{3}\.\d{3}\.\d{3}-\d{2}"), "<CPF_REDACTED>"),
+        (re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"), "<CNPJ_REDACTED>"),
+        (re.compile(r"\(?\d{2}\)?[\s-]?9?\d{4}[\s-]?\d{4}"), "<PHONE_REDACTED>"),
+    ]
+
     def sanitize(self, llm_output: str) -> str:
         """Remove PII do output do LLM.
 
@@ -72,18 +84,27 @@ class OutputGuardrail:
         Returns:
             Texto sanitizado.
         """
-        results = self.analyzer.analyze(
-            text=llm_output,
-            language=self.language,
-            entities=["PERSON", "EMAIL_ADDRESS", "PHONE_NUMBER", "BR_CPF"],
-        )
+        text = llm_output
 
-        if results:
-            logger.warning("PII detectado no output: %d entidades", len(results))
-            anonymized = self.anonymizer.anonymize(
-                text=llm_output,
-                analyzer_results=results,  # type: ignore[arg-type]
+        # Step 1: Presidio for NER-based entities (falls back gracefully).
+        try:
+            # Use "en" — the default AnalyzerEngine ships English recognizers only.
+            results = self.analyzer.analyze(
+                text=text,
+                language="en",
+                entities=self._SUPPORTED_ENTITIES,
             )
-            return anonymized.text
+            if results:
+                logger.warning("PII detectado no output: %d entidades", len(results))
+                text = self.anonymizer.anonymize(
+                    text=text,
+                    analyzer_results=results,  # type: ignore[arg-type]
+                ).text
+        except Exception as exc:
+            logger.warning("Presidio analyze falhou (%s); usando regex fallback.", exc)
 
-        return llm_output
+        # Step 2: Regex for BR-specific patterns (CPF, CNPJ, phone).
+        for pattern, replacement in self._REGEX_PATTERNS:
+            text = pattern.sub(replacement, text)
+
+        return text
