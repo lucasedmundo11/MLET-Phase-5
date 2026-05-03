@@ -48,6 +48,3 @@ mlflow.db
 
 # OS
 .DS_Store
-
-# Claude
-.claude/

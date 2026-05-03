@@ -50,7 +50,9 @@
       "Bash(.venv/bin/python -m ruff format src/ tests/ evaluation/ scripts/)",
       "Bash(.venv/bin/python -m mypy src/ --ignore-missing-imports)",
       "Bash(.venv/bin/python -c ' *)",
-      "Bash(.venv/bin/python -m pytest tests/test_guardrails.py -v --tb=short --no-header)"
+      "Bash(.venv/bin/python -m pytest tests/test_guardrails.py -v --tb=short --no-header)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
